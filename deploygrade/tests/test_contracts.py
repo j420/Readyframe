@@ -38,3 +38,10 @@ class ContractTests(unittest.TestCase):
         artifact["audit"]["engine_version"] = "tampered"
         with self.assertRaisesRegex(ValueError, "audit signature"):
             validate_artifact(artifact)
+
+    def test_dashboard_portfolio_contract_rejects_metadata_free_numbers(self):
+        portfolio = json.loads(Path("deploygrade/sites/dashboard/portfolio.json").read_text())
+        validate_artifact(portfolio)
+        portfolio["rows"][0]["risk"] = {"value": 92}
+        with self.assertRaisesRegex(ValueError, "missing required"):
+            validate_artifact(portfolio)
