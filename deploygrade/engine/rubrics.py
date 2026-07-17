@@ -1,6 +1,5 @@
 """Immutable, checked-in rubric artifacts used for all production score math."""
 import json
-import hashlib
 from pathlib import Path
 
 from deploygrade.engine.contracts import validate_artifact
@@ -28,9 +27,3 @@ def load(version: str) -> dict:
     if [band["threshold"] for band in bands] != sorted(band["threshold"] for band in bands):
         raise ValueError("rubric bands must be strictly ordered")
     return rubric
-
-
-def content_hash(version: str) -> str:
-    """Return the canonical content hash carried by every score audit."""
-    rubric = load(version)
-    return hashlib.sha256(json.dumps(rubric, sort_keys=True, separators=(",", ":")).encode()).hexdigest()

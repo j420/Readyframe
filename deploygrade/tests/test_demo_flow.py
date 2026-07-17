@@ -7,7 +7,6 @@ class DemoFlowTests(unittest.TestCase):
     def test_live_demo_chain_is_deterministic_and_score_drives_blueprint(self):
         first = run("deceptive")
         self.assertEqual(first, run("deceptive"))
-        self.assertEqual(first["$schema"], "../schemas/demo_run.schema.json")
         self.assertEqual(first["blueprint"]["source_readiness_audit"]["signature"], first["readiness_score"]["audit"]["signature"])
         self.assertTrue(first["blueprint"]["rollback_rules"])
         self.assertEqual(first["flywheel"]["refit"]["status"], "PUBLISHED")

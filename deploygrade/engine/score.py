@@ -5,7 +5,7 @@ import json
 import sys
 from pathlib import Path
 from deploygrade.engine.contracts import validate_artifact
-from deploygrade.engine.rubrics import content_hash as rubric_hash, load as load_rubric
+from deploygrade.engine.rubrics import load as load_rubric
 
 ENGINE_VERSION = "3.0.0"
 def _specifications(rubric_version: str):
