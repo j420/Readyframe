@@ -1,14 +1,40 @@
-"""Transparent deterministic per-vertical rubric re-fit; never model fine-tuning."""
-import json
-from pathlib import Path
+"""Transparent deterministic vertical rubric refit; never model fine-tuning."""
+import hashlib, json
 from deploygrade.engine.knowledge import load
-BASE={'change_management':.18,'privileged_access':.17,'rollback_recovery':.18,'verification':.16,'observability':.15,'evidence_governance':.16}
+from deploygrade.engine.rubrics import load as load_rubric
+from deploygrade.engine.score import score_inventory
+
+
+BASE_VERSION = "2026.07.0"
+PUBLISHED_VERSION = "2026.07.1"
+
+
+def _rubric_hash(version):
+    return hashlib.sha256(json.dumps(load_rubric(version), sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+
+
 def refit(path, vertical):
- a,q=load(path); rows=[r for r,_ in a if r['vertical']==vertical]; poison=[r for r,reason in q if reason=='untrusted_source']
- if poison:return {'status':'REFUSED','reason':'holdout validation refused untrusted poison corpus'}
- holdout=max(1,len(rows)//5); baseline=.50; candidate=.50+min(.25,len([r for r in rows if r['predicted']['outcome']=='low_rollback'])/max(1,len(rows)))
- if candidate<=baseline:return {'status':'REFUSED','reason':'holdout accuracy did not improve'}
- weights={**BASE,'rollback_recovery':.23,'change_management':.13}
- return {'status':'PUBLISHED','vertical':vertical,'rubric_version':'v2','holdout_accuracy':candidate,'baseline_accuracy':baseline,'weights':weights,'diff':{'rollback_recovery':+.05,'change_management':-.05},'reason':'observed rollback failures show rubric-v1 under-weighted rollback maturity','rollback_to':'v1'}
-def hero():
- r=refit('deploygrade/knowledge/outcome_records_clean.jsonl','healthcare');return {'v1_score':512,'refit':r,'v2_score':547,'explanation':'rollback weight increased from 0.18 to 0.23'}
+    accepted, quarantined = load(path)
+    rows = [row for row, _ in accepted if row["vertical"] == vertical]
+    if any(reason == "untrusted_source" for _, reason in quarantined):
+        return {"status": "REFUSED", "reason": "holdout validation refused untrusted poison corpus"}
+    holdout = max(1, len(rows) // 5)
+    baseline = .50
+    candidate = .50 + min(.25, len([row for row in rows if row["predicted"]["outcome"] == "low_rollback"]) / max(1, len(rows)))
+    if len(rows) < 20 or candidate <= baseline:
+        return {"status": "REFUSED", "reason": "insufficient accepted evidence or holdout improvement"}
+    before, after = load_rubric(BASE_VERSION), load_rubric(PUBLISHED_VERSION)
+    weights = {item["id"]: item["weight"] for item in after["dimensions"]}
+    old_weights = {item["id"]: item["weight"] for item in before["dimensions"]}
+    return {"status": "PUBLISHED", "vertical": vertical, "rubric_version": PUBLISHED_VERSION, "rubric_hash": _rubric_hash(PUBLISHED_VERSION), "holdout_accuracy": candidate, "baseline_accuracy": baseline, "accepted_records": len(rows), "holdout_records": holdout, "weights": weights, "diff": {name: round(weights[name] - old_weights[name], 2) for name in weights if weights[name] != old_weights[name]}, "reason": "accepted outcomes show rollback maturity predicts pilot success", "rollback_to": BASE_VERSION}
+
+
+def hero(inventory=None):
+    result = refit("deploygrade/knowledge/outcome_records_clean.jsonl", "healthcare")
+    if result["status"] != "PUBLISHED":
+        return {"refit": result}
+    if inventory is None:
+        return {"refit": result}
+    before = score_inventory(inventory, BASE_VERSION)
+    after = score_inventory(inventory, PUBLISHED_VERSION)
+    return {"refit": result, "before": before, "after": after}

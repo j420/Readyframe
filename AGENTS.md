@@ -1,5 +1,7 @@
 # DeployGrade Enforced Engineering Rules
 
+> **Product direction:** Read `PRODUCT_VISION.md` before changing product behavior, APIs, schemas, agents, scoring, Pilot, Flywheel, or Vercel deployment. Its product-spine and safety rules are mandatory design guardrails in addition to the engineering laws below.
+
 ## Scope and purpose
 This repository builds DeployGrade: a portable, explainable, vendor-neutral readiness signal, **not certification**. Every change must preserve trust, honesty, and safe compounding.
 

@@ -4,10 +4,25 @@
   <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
   <title>DeployGrade | Readiness trust surface</title>
   <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="intake.css">
 </head>
 <body>
   <main class="shell">
     <header><p class="eyebrow">DEPLOYGRADE / READINESS SIGNAL, NOT CERTIFICATION</p><h1>Deployment readiness, with the receipts.</h1><p id="summary">Loading verified readiness artifact…</p></header>
+    <section class="intake" aria-labelledby="intake-title">
+      <div><p class="eyebrow">UNVERIFIED DEMO CALCULATOR</p><h2 id="intake-title">Preview a readiness score</h2><p>Declared evidence is not verified and this preview cannot approve a deployment. A production readiness decision requires validated discovery evidence and a human safety gate.</p></div>
+      <form id="score-form">
+        <label>Rubric version <input name="rubric_version" value="2026.07.0" readonly></label>
+        <label>Access control confidence <input name="access_control" type="number" min="0" max="1" step="0.01" value="0.95" required></label>
+        <label>Rollback-plan confidence <input name="rollback_plan" type="number" min="0" max="1" step="0.01" value="0.80" required></label>
+        <label>Observability confidence <input name="observability" type="number" min="0" max="1" step="0.01" value="0.90" required></label>
+        <button type="submit">Calculate readiness</button><p id="form-status" role="status"></p>
+      </form>
+    </section>
+    <section class="intake" aria-labelledby="demo-title">
+      <div><p class="eyebrow">LIVE DEMO PATH</p><h2 id="demo-title">Discovery → Score → Blueprint → Flywheel</h2><p>Run the approved, read-only demo repository through the real deterministic chain. The result includes the score-derived rollout gates and the rubric-refit hero artifact.</p></div>
+      <div><label>Repository profile <select id="demo-profile"><option value="deceptive">Deceptive repository</option><option value="mature">Mature repository</option></select></label><button id="run-demo" type="button">Run live demo path</button><p id="demo-status" role="status"></p></div>
+    </section>
     <section class="hero" aria-labelledby="score-title">
       <div><p class="eyebrow">READINESS SCORE</p><div id="score" class="score">—</div><p id="band" class="band">—</p></div>
       <div class="confidence"><p class="eyebrow">CONFIDENCE RANGE</p><div class="range" aria-label="confidence interval"><div id="range-fill"></div><i id="range-point"></i></div><p id="interval">—</p><ul id="drivers" class="drivers"></ul></div>
@@ -20,10 +35,10 @@
     </section>
     <section><div class="section-head"><div><p class="eyebrow">CONTROL BREAKDOWN</p><h2>What feeds the score</h2></div><p>Red marks evidence that is missing, stale, or weak—not a silent assumption.</p></div><div id="dimensions" class="dimensions"></div></section>
     <section class="counterfactual"><div><p class="eyebrow">HOW DO I GET TO READY?</p><h2>Lowest-effort next steps</h2><p id="path-summary"></p></div><ol id="actions" class="actions"></ol></section>
-  <section class="counterfactual"><p class="eyebrow">NETWORK VALUE</p><h2 id="network-value">Customers graded: 200; holdout accuracy: 50% → 75%; your score benefits from 200 prior deployments.</h2><p>Non-copyable asset: validated, accumulated outcome corpus—not the scoring code.</p></section></main>
+    <section class="counterfactual"><p class="eyebrow">NETWORK VALUE</p><h2 id="network-value">Customers graded: 200; holdout accuracy: 50% → 75%; your score benefits from 200 prior deployments.</h2><p>Non-copyable asset: validated, accumulated outcome corpus—not the scoring code.</p></section>
   <dialog id="audit-dialog"><button id="close-audit" aria-label="Close audit record">×</button><p class="eyebrow">SIGNED AUDIT RECORD</p><h2>Reproducibility receipt</h2><pre id="audit-record"></pre></dialog>
+    <section class="counterfactual"><p class="eyebrow">OPERATOR PORTFOLIO</p><h2>Which deployment will hurt me next, and why?</h2><div id="portfolio"></div></section>
+  </main>
   <script src="app.js"></script>
 </body>
 </html>
-<section class="counterfactual"><p class="eyebrow">OPERATOR PORTFOLIO</p><h2>Which deployment will hurt me next, and why?</h2><div id="portfolio"></div></section>
-<script>fetch('portfolio.json').then(r=>r.json()).then(rows=>{rows.sort((a,b)=>b.risk-a.risk||b.velocity-a.velocity);document.querySelector('#portfolio').innerHTML=rows.map(x=>`<p><b>${x.deployment_id}</b> · ${x.vertical} · risk ${x.risk} · <a href="${x.evidence_uris[0]}">evidence</a> · action: ${x.action}</p>`).join('')})</script>

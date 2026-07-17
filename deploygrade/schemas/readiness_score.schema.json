@@ -248,6 +248,10 @@
           "type": "string",
           "minLength": 1
         },
+        "rubric_hash": {
+          "type": "string",
+          "minLength": 1
+        },
         "engine_version": {
           "type": "string",
           "minLength": 1
