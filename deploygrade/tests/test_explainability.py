@@ -1,13 +1,5 @@
-import json
-import unittest
-from pathlib import Path
-
-
+import json,unittest
 class ExplainabilityTests(unittest.TestCase):
-    def test_portfolio_numbers_have_full_coverage(self):
-        path = Path('deploygrade/sites/dashboard/portfolio.json')
-        for item in json.loads(path.read_text()):
-            self.assertTrue(item['evidence_uris'])
-            self.assertIn('confidence', item)
-            self.assertTrue(item['counterfactual'])
-            self.assertTrue(item['audit_record'])
+ def test_portfolio_numbers_have_full_coverage(self):
+  for x in json.load(open('deploygrade/sites/dashboard/portfolio.json')):
+   self.assertTrue(x['evidence_uris']);self.assertIn('confidence',x);self.assertTrue(x['counterfactual']);self.assertTrue(x['audit_record'])

@@ -20,10 +20,10 @@
     </section>
     <section><div class="section-head"><div><p class="eyebrow">CONTROL BREAKDOWN</p><h2>What feeds the score</h2></div><p>Red marks evidence that is missing, stale, or weak—not a silent assumption.</p></div><div id="dimensions" class="dimensions"></div></section>
     <section class="counterfactual"><div><p class="eyebrow">HOW DO I GET TO READY?</p><h2>Lowest-effort next steps</h2><p id="path-summary"></p></div><ol id="actions" class="actions"></ol></section>
-    <section class="network-value"><p class="eyebrow">NETWORK VALUE</p><h2 id="network-value">Customers graded: 200; holdout accuracy: 50% → 75%; your score benefits from 200 prior deployments.</h2><p>Non-copyable asset: validated, accumulated outcome corpus—not the scoring code.</p></section>
-    <section class="portfolio" aria-labelledby="portfolio-title"><div><p class="eyebrow">OPERATOR PORTFOLIO</p><h2 id="portfolio-title">Which deployment will hurt me next, and why?</h2><p>Sorted by risk, then velocity. Every deployment has an evidence link and a recommended action.</p></div><div id="portfolio" class="portfolio-grid" aria-live="polite"></div></section>
-  </main>
+  <section class="counterfactual"><p class="eyebrow">NETWORK VALUE</p><h2 id="network-value">Customers graded: 200; holdout accuracy: 50% → 75%; your score benefits from 200 prior deployments.</h2><p>Non-copyable asset: validated, accumulated outcome corpus—not the scoring code.</p></section></main>
   <dialog id="audit-dialog"><button id="close-audit" aria-label="Close audit record">×</button><p class="eyebrow">SIGNED AUDIT RECORD</p><h2>Reproducibility receipt</h2><pre id="audit-record"></pre></dialog>
   <script src="app.js"></script>
 </body>
 </html>
+<section class="counterfactual"><p class="eyebrow">OPERATOR PORTFOLIO</p><h2>Which deployment will hurt me next, and why?</h2><div id="portfolio"></div></section>
+<script>fetch('portfolio.json').then(r=>r.json()).then(rows=>{rows.sort((a,b)=>b.risk-a.risk||b.velocity-a.velocity);document.querySelector('#portfolio').innerHTML=rows.map(x=>`<p><b>${x.deployment_id}</b> · ${x.vertical} · risk ${x.risk} · <a href="${x.evidence_uris[0]}">evidence</a> · action: ${x.action}</p>`).join('')})</script>

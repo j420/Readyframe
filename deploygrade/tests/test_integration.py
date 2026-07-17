@@ -1,29 +1,8 @@
-import hashlib
-import json
-import unittest
-from pathlib import Path
-
+import json,unittest,hashlib
 from deploygrade.engine.blueprint import compile_blueprint
 from deploygrade.engine.network import readout
-
-
 class IntegrationTests(unittest.TestCase):
-    def test_v2_shift_tightens_rollback_gate(self):
-        score = json.loads(Path('deploygrade/sites/dashboard/readiness_score.json').read_text())
-        policy = json.loads(Path('deploygrade/fixtures/policy_pack.json').read_text())
-        compile_blueprint(score, policy, 'x')
-        v2_score = {**score, 'score': {**score['score'], 'rubric_version': 'v2', 'value': 494}, 'sub_scores': [dict(item) for item in score['sub_scores']]}
-        v2_score['sub_scores'][2]['raw'] = 10
-        v2_score['confidence'] = {**score['confidence'], 'interval_low': 99}
-        v2_score['audit'] = {**score['audit'], 'rubric_version': 'v2'}
-        unsigned_audit = {key: value for key, value in v2_score['audit'].items() if key != 'signature'}
-        v2_score['audit']['signature'] = hashlib.sha256(json.dumps(unsigned_audit, sort_keys=True, separators=(',', ':')).encode()).hexdigest()
-        v2 = compile_blueprint(v2_score, policy, 'x')
-        rollback = next(rule for rule in v2['rollback_rules'] if rule['because']['sub_score'] == 'rollback_recovery')
-        self.assertEqual(rollback['effect'], 'DENY')
-        self.assertLess(v2_score['sub_scores'][2]['raw'], score['sub_scores'][2]['raw'])
-
-    def test_network_value(self):
-        network = readout()
-        self.assertEqual(network['prior_deployments'], 181)
-        self.assertGreater(network['holdout_accuracy_after'], network['holdout_accuracy_before'])
+ def test_v2_shift_tightens_rollback_gate(self):
+  r=json.load(open('deploygrade/sites/dashboard/readiness_score.json'));p=json.load(open('deploygrade/fixtures/policy_pack.json'));v1=compile_blueprint(r,p,'x');r2={**r,'score':{**r['score'],'rubric_version':'v2','value':494},'sub_scores':[dict(x) for x in r['sub_scores']]};r2['sub_scores'][2]['raw']=10;r2['confidence']={**r['confidence'],'interval_low':99};r2['audit']={**r['audit'],'rubric_version':'v2'};a={k:v for k,v in r2['audit'].items() if k!='signature'};r2['audit']['signature']=hashlib.sha256(json.dumps(a,sort_keys=True,separators=(',',':')).encode()).hexdigest();v2=compile_blueprint(r2,p,'x');self.assertEqual(next(x for x in v2['rollback_rules'] if x['because']['sub_score']=='rollback_recovery')['effect'],'DENY');self.assertLess(r2['sub_scores'][2]['raw'],r['sub_scores'][2]['raw'])
+ def test_network_value(self):
+  n=readout();self.assertEqual(n['prior_deployments'],181);self.assertGreater(n['holdout_accuracy_after'],n['holdout_accuracy_before'])

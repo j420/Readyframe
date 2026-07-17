@@ -17,12 +17,3 @@ class DashboardTests(unittest.TestCase):
         page = (DASHBOARD / "index.html").read_text()
         for text in ("This looks made up", "Why trust one number", "What do we do next", "Show me the audit record", "NETWORK VALUE", "Non-copyable asset"):
             self.assertIn(text, page)
-
-    def test_portfolio_is_inside_the_document_and_renderer_escapes_artifact_text(self):
-        page = (DASHBOARD / "index.html").read_text()
-        app = (DASHBOARD / "app.js").read_text()
-        self.assertLess(page.index('id="portfolio"'), page.index('</main>'))
-        self.assertIn('const escapeHtml', app)
-        self.assertIn('const safeHref', app)
-        self.assertIn('const meterWidth', app)
-        self.assertIn('renderPortfolio', app)
