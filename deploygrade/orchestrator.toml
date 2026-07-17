@@ -1,0 +1,6 @@
+[orchestrator]
+mode = "goal"
+entrypoint = "deploygrade.engine.orchestrator"
+session_start_hook = "deploygrade.hooks.session_start"
+session_stop_hook = "deploygrade.hooks.session_stop"
+audit_log_schema = "../schemas/audit_log.schema.json"

@@ -1,0 +1,1 @@
+{"$schema":"../schemas/readiness-input.schema.json","rubric_version":"2026.07.0","controls":{"access_control":0.95,"rollback_plan":0.8,"observability":0.9}}

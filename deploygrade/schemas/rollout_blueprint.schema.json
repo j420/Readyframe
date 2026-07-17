@@ -1,0 +1,366 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "rollout_blueprint.schema.json",
+  "x-schema-version": "2.0",
+  "type": "object",
+  "required": [
+    "$schema",
+    "schema_version",
+    "deployment_id",
+    "source_readiness_audit",
+    "autonomy_level",
+    "policy_pack",
+    "rollback_rules",
+    "budget",
+    "approval_gates",
+    "pilot_repos",
+    "source_band"
+  ],
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "minLength": 1
+    },
+    "schema_version": {
+      "type": "string",
+      "minLength": 1
+    },
+    "deployment_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "source_readiness_audit": {
+      "type": "object",
+      "required": [
+        "inputs_hash",
+        "rubric_version",
+        "engine_version",
+        "signature"
+      ],
+      "properties": {
+        "inputs_hash": {
+          "type": "string",
+          "minLength": 1
+        },
+        "rubric_version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "engine_version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "signature": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "additionalProperties": false
+    },
+    "autonomy_level": {
+      "type": "string",
+      "enum": [
+        "OBSERVE",
+        "SUPERVISED",
+        "BOUNDED",
+        "AUTONOMOUS"
+      ]
+    },
+    "policy_pack": {
+      "type": "object",
+      "required": [
+        "id",
+        "vertical",
+        "overrides",
+        "defaults"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "vertical": {
+          "type": "string",
+          "minLength": 1
+        },
+        "overrides": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "field",
+              "value",
+              "justification",
+              "approved_by"
+            ],
+            "properties": {
+              "field": {
+                "type": "string"
+              },
+              "value": {
+                "type": "number"
+              },
+              "justification": {
+                "type": "string"
+              },
+              "approved_by": {
+                "type": "string"
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "defaults": {
+          "type": "object",
+          "required": [
+            "max_goal_token_budget",
+            "pilot_repos"
+          ],
+          "properties": {
+            "max_goal_token_budget": {
+              "type": "number",
+              "minimum": 1
+            },
+            "pilot_repos": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "object",
+                "required": [
+                  "id",
+                  "blast_radius"
+                ],
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "blast_radius": {
+                    "type": "string",
+                    "enum": [
+                      "LOW",
+                      "MEDIUM",
+                      "HIGH"
+                    ]
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "rollback_rules": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "when",
+          "effect",
+          "because"
+        ],
+        "properties": {
+          "when": {
+            "type": "string",
+            "minLength": 1
+          },
+          "effect": {
+            "type": "string",
+            "enum": [
+              "DENY",
+              "PAUSE",
+              "REQUIRE_HUMAN"
+            ]
+          },
+          "because": {
+            "type": "object",
+            "required": [
+              "sub_score",
+              "control_clause",
+              "evidence_uris"
+            ],
+            "properties": {
+              "sub_score": {
+                "type": "string",
+                "minLength": 1
+              },
+              "control_clause": {
+                "type": "string",
+                "minLength": 1
+              },
+              "evidence_uris": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "budget": {
+      "type": "object",
+      "required": [
+        "goal_token_budget"
+      ],
+      "properties": {
+        "goal_token_budget": {
+          "type": "object",
+          "required": [
+            "value",
+            "confidence",
+            "evidence_uris",
+            "rubric_version"
+          ],
+          "properties": {
+            "value": {
+              "type": "number",
+              "minimum": 1
+            },
+            "confidence": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 1
+            },
+            "evidence_uris": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "rubric_version": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "approval_gates": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "required",
+          "because"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "required": {
+            "type": "boolean"
+          },
+          "because": {
+            "type": "object",
+            "required": [
+              "sub_score",
+              "control_clause",
+              "evidence_uris"
+            ],
+            "properties": {
+              "sub_score": {
+                "type": "string",
+                "minLength": 1
+              },
+              "control_clause": {
+                "type": "string",
+                "minLength": 1
+              },
+              "evidence_uris": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "pilot_repos": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "blast_radius",
+          "because"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "blast_radius": {
+            "type": "string",
+            "enum": [
+              "LOW",
+              "MEDIUM",
+              "HIGH"
+            ]
+          },
+          "because": {
+            "type": "object",
+            "required": [
+              "sub_score",
+              "control_clause",
+              "evidence_uris"
+            ],
+            "properties": {
+              "sub_score": {
+                "type": "string",
+                "minLength": 1
+              },
+              "control_clause": {
+                "type": "string",
+                "minLength": 1
+              },
+              "evidence_uris": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "source_band": {
+      "type": "string",
+      "enum": [
+        "BLOCKED",
+        "CONDITIONAL",
+        "READY",
+        "SCALE"
+      ]
+    }
+  },
+  "additionalProperties": false
+}

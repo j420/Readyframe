@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "learning-observation.schema.json",
+  "type": "object",
+  "required": [
+    "$schema",
+    "vertical",
+    "rubric_version",
+    "outcome"
+  ],
+  "properties": {
+    "$schema": {
+      "const": "../schemas/learning-observation.schema.json"
+    },
+    "vertical": {
+      "type": "string"
+    },
+    "rubric_version": {
+      "type": "string"
+    },
+    "outcome": {
+      "enum": [
+        "success",
+        "failure"
+      ]
+    }
+  },
+  "additionalProperties": false,
+  "x-schema-version": "1.0"
+}
