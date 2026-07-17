@@ -1,0 +1,16 @@
+{
+  "$schema": "../schemas/rubric.schema.json",
+  "schema_version": "2.0",
+  "rubric_version": "2026.07.0",
+  "vertical": "baseline",
+  "bands": [{"threshold": 400, "name": "BLOCKED"}, {"threshold": 600, "name": "CONDITIONAL"}, {"threshold": 800, "name": "READY"}],
+  "dimensions": [
+    {"id":"change_management","weight":0.18,"categories":["ci","iac"],"control_clauses":["PCI DSS 6.4.5.4","SOC 2 CC8.1","NIST SP 800-53 CM-3"],"cost":3,"counterfactual":"Add a reviewed change-control gate"},
+    {"id":"privileged_access","weight":0.17,"categories":["iam"],"control_clauses":["HIPAA 164.312","NIST SP 800-53 CM-5"],"cost":4,"counterfactual":"Enforce least-privilege IAM controls"},
+    {"id":"rollback_recovery","weight":0.18,"categories":["rollback"],"control_clauses":["NIST SP 800-53 CM-5"],"cost":4,"counterfactual":"Add an automated rollback path"},
+    {"id":"verification","weight":0.16,"categories":["tests"],"control_clauses":["PCI DSS 6.4.5.4"],"cost":2,"counterfactual":"Add meaningful automated verification"},
+    {"id":"observability","weight":0.15,"categories":["cloud"],"control_clauses":["SOC 2 CC8.1"],"cost":3,"counterfactual":"Add production observability evidence"},
+    {"id":"evidence_governance","weight":0.16,"categories":[],"control_clauses":["HIPAA 164.312","SOC 2 CC8.1"],"cost":2,"counterfactual":"Record governed evidence for required controls"}
+  ],
+  "controls": [{"id":"readiness-spine","weight":1.0}]
+}

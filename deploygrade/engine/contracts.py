@@ -1,6 +1,7 @@
 """Versioned JSON-contract and semantic validation for DeployGrade artifacts."""
 import hashlib
 import json
+import math
 from pathlib import Path
 
 SCHEMA_ROOT = Path(__file__).parents[1] / "schemas"
@@ -16,7 +17,26 @@ def _schema_path(schema_uri: str) -> Path:
     return path
 
 
-def _validate(value, rule: dict, path: str) -> None:
+def _resolve_ref(rule: dict, root_schema: dict) -> dict:
+    """Resolve local JSON Schema references; external references fail closed."""
+    reference = rule.get("$ref")
+    if not reference:
+        return rule
+    if not reference.startswith("#/"):
+        raise ValueError(f"unsupported external schema reference: {reference}")
+    resolved = root_schema
+    for part in reference[2:].split("/"):
+        if not isinstance(resolved, dict) or part not in resolved:
+            raise ValueError(f"unresolvable schema reference: {reference}")
+        resolved = resolved[part]
+    if not isinstance(resolved, dict):
+        raise ValueError(f"schema reference must resolve to an object: {reference}")
+    return resolved
+
+
+def _validate(value, rule: dict, path: str, root_schema: dict | None = None) -> None:
+    root_schema = root_schema or rule
+    rule = _resolve_ref(rule, root_schema)
     expected = rule.get("type")
     type_ok = {
         "object": lambda: isinstance(value, dict),
@@ -33,6 +53,8 @@ def _validate(value, rule: dict, path: str) -> None:
     if "const" in rule and value != rule["const"]:
         raise ValueError(f"{path} must equal {rule['const']}")
     if isinstance(value, (int, float)) and not isinstance(value, bool):
+        if not math.isfinite(value):
+            raise ValueError(f"{path} must be a finite number")
         if value < rule.get("minimum", value) or value > rule.get("maximum", value):
             raise ValueError(f"{path} is outside its allowed range")
     if isinstance(value, str) and not value and rule.get("minLength", 0) > 0:
@@ -41,7 +63,7 @@ def _validate(value, rule: dict, path: str) -> None:
         if len(value) < rule.get("minItems", 0):
             raise ValueError(f"{path} needs at least {rule['minItems']} items")
         for index, item in enumerate(value):
-            _validate(item, rule.get("items", {}), f"{path}[{index}]")
+            _validate(item, rule.get("items", {}), f"{path}[{index}]", root_schema)
     if isinstance(value, dict):
         missing = set(rule.get("required", [])) - set(value)
         if missing:
@@ -51,9 +73,12 @@ def _validate(value, rule: dict, path: str) -> None:
             extras = set(value) - set(properties)
             if extras:
                 raise ValueError(f"{path} has unexpected fields: {sorted(extras)}")
+        elif isinstance(rule.get("additionalProperties"), dict):
+            for key in set(value) - set(properties):
+                _validate(value[key], rule["additionalProperties"], f"{path}.{key}", root_schema)
         for key, child_rule in properties.items():
             if key in value:
-                _validate(value[key], child_rule, f"{path}.{key}")
+                _validate(value[key], child_rule, f"{path}.{key}", root_schema)
 
 
 def _validate_readiness_semantics(payload: dict) -> None:
@@ -95,7 +120,7 @@ def validate_schema_shape(payload: dict) -> None:
         raise ValueError("artifact must be an object with a $schema")
     schema_uri = payload["$schema"]
     schema = json.loads(_schema_path(schema_uri).read_text())
-    _validate(payload, schema, "artifact")
+    _validate(payload, schema, "artifact", schema)
     return schema_uri
 
 
