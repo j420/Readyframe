@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "portfolio_dashboard.schema.json",
+  "type": "object",
+  "required": ["$schema", "rows"],
+  "properties": {
+    "$schema": {"const": "../../schemas/portfolio_dashboard.schema.json"},
+    "rows": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["deployment_id", "vertical", "risk", "velocity", "confidence", "evidence_uris", "counterfactual", "audit_record", "action"],
+        "properties": {
+          "deployment_id": {"type": "string", "minLength": 1},
+          "vertical": {"type": "string", "minLength": 1},
+          "risk": {"$ref": "#/$defs/number"},
+          "velocity": {"$ref": "#/$defs/number"},
+          "confidence": {"$ref": "#/$defs/number"},
+          "evidence_uris": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
+          "counterfactual": {"type": "string", "minLength": 1},
+          "audit_record": {"type": "string", "minLength": 1},
+          "action": {"type": "string", "minLength": 1}
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "$defs": {
+    "number": {
+      "type": "object",
+      "required": ["value", "confidence", "evidence_uris", "rubric_version"],
+      "properties": {
+        "value": {"type": "number"},
+        "confidence": {"type": "number", "minimum": 0, "maximum": 1},
+        "evidence_uris": {"type": "array", "minItems": 1, "items": {"type": "string", "minLength": 1}},
+        "rubric_version": {"type": "string", "minLength": 1}
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}
