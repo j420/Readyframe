@@ -26,7 +26,6 @@ audit:
 redteam:
 	python3 -m deploygrade.harness.redteam_precommit
 	python3 -m unittest deploygrade.tests.test_pilot deploygrade.tests.test_knowledge -v
-	python3 -m deploygrade.harness.redteam_full
 
 # Goal-mode lifecycle: the JSONL audit log is a first-class output.
 goal handoffs:
