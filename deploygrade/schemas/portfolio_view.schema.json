@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "$id": "portfolio_view.schema.json",
+  "schema_version": "1.0",
+  "required": [
+    "$schema",
+    "schema_version",
+    "portfolio_id",
+    "deployments"
+  ],
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "minLength": 1
+    },
+    "schema_version": {
+      "type": "string",
+      "minLength": 1
+    },
+    "portfolio_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "deployments": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "deployment_id",
+          "band"
+        ],
+        "properties": {
+          "deployment_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "band": {
+            "type": "string",
+            "enum": [
+              "BLOCKED",
+              "GUARDED",
+              "READY",
+              "SCALE"
+            ]
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

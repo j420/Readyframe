@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "readiness-input.schema.json",
+  "type": "object",
+  "required": [
+    "$schema",
+    "rubric_version",
+    "controls"
+  ],
+  "properties": {
+    "$schema": {
+      "const": "../schemas/readiness-input.schema.json"
+    },
+    "rubric_version": {
+      "type": "string"
+    },
+    "controls": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "number",
+        "minimum": 0,
+        "maximum": 1
+      }
+    },
+    "discovery_inventory": {
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "x-schema-version": "1.0"
+}

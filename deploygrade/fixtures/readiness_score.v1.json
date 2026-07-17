@@ -1,0 +1,6 @@
+{
+  "$schema": "../schemas/readiness_score.v1.schema.json",
+  "schema_version": "1.0",
+  "score": 750,
+  "rubric_version": "2025.12.0"
+}

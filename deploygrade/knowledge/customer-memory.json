@@ -1,0 +1,1 @@
+{"$schema":"../schemas/customer_memory.schema.json","schema_version":"1.0","customer_id":"demo-healthcare","prior_rubric_version":"2026.07.0","vertical":"healthcare","memory_scope":"customer-isolated"}
