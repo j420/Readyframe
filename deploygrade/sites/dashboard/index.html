@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>DeployGrade | Readiness trust surface</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main class="shell">
+    <header><p class="eyebrow">DEPLOYGRADE / READINESS SIGNAL, NOT CERTIFICATION</p><h1>Deployment readiness, with the receipts.</h1><p id="summary">Loading verified readiness artifact…</p></header>
+    <section class="hero" aria-labelledby="score-title">
+      <div><p class="eyebrow">READINESS SCORE</p><div id="score" class="score">—</div><p id="band" class="band">—</p></div>
+      <div class="confidence"><p class="eyebrow">CONFIDENCE RANGE</p><div class="range" aria-label="confidence interval"><div id="range-fill"></div><i id="range-point"></i></div><p id="interval">—</p><ul id="drivers" class="drivers"></ul></div>
+      <button id="audit-button" class="audit-button">Show me the audit record</button>
+    </section>
+    <section class="answer-grid" aria-label="Why this is trustworthy">
+      <article><h2>“This looks made up.”</h2><p>Every dimension links to evidence and a named control clause—not an opaque model judgment.</p></article>
+      <article><h2>“Why trust one number?”</h2><p>The fuzzy confidence range and six-dimension breakdown make uncertainty visible.</p></article>
+      <article><h2>“What do we do next?”</h2><p>The cheapest path to the next band is a concrete, effort-estimated checklist.</p></article>
+    </section>
+    <section><div class="section-head"><div><p class="eyebrow">CONTROL BREAKDOWN</p><h2>What feeds the score</h2></div><p>Red marks evidence that is missing, stale, or weak—not a silent assumption.</p></div><div id="dimensions" class="dimensions"></div></section>
+    <section class="counterfactual"><div><p class="eyebrow">HOW DO I GET TO READY?</p><h2>Lowest-effort next steps</h2><p id="path-summary"></p></div><ol id="actions" class="actions"></ol></section>
+  <section class="counterfactual"><p class="eyebrow">NETWORK VALUE</p><h2 id="network-value">Customers graded: 200; holdout accuracy: 50% → 75%; your score benefits from 200 prior deployments.</h2><p>Non-copyable asset: validated, accumulated outcome corpus—not the scoring code.</p></section></main>
+  <dialog id="audit-dialog"><button id="close-audit" aria-label="Close audit record">×</button><p class="eyebrow">SIGNED AUDIT RECORD</p><h2>Reproducibility receipt</h2><pre id="audit-record"></pre></dialog>
+  <script src="app.js"></script>
+</body>
+</html>
+<section class="counterfactual"><p class="eyebrow">OPERATOR PORTFOLIO</p><h2>Which deployment will hurt me next, and why?</h2><div id="portfolio"></div></section>
+<script>fetch('portfolio.json').then(r=>r.json()).then(rows=>{rows.sort((a,b)=>b.risk-a.risk||b.velocity-a.velocity);document.querySelector('#portfolio').innerHTML=rows.map(x=>`<p><b>${x.deployment_id}</b> · ${x.vertical} · risk ${x.risk} · <a href="${x.evidence_uris[0]}">evidence</a> · action: ${x.action}</p>`).join('')})</script>

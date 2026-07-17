@@ -1,0 +1,48 @@
+{
+  "$schema": "../schemas/scaling_decision.schema.json",
+  "schema_version": "2.0",
+  "decision": "HOLD",
+  "predicted_gain": {
+    "value": 0,
+    "confidence": 0.2,
+    "evidence_uris": [
+      "metric://pilot/throughput",
+      "metric://pilot/rollbacks"
+    ],
+    "rubric_version": "2026.07.0"
+  },
+  "risk_delta": {
+    "value": 1.0,
+    "confidence": 0.2,
+    "evidence_uris": [
+      "metric://pilot/throughput",
+      "metric://pilot/rollbacks"
+    ],
+    "rubric_version": "2026.07.0"
+  },
+  "next_repo_batch": [],
+  "updated_policy": "retain pilot gates",
+  "confidence": {
+    "value": 0.2,
+    "confidence": 0.2,
+    "evidence_uris": [
+      "metric://pilot/throughput",
+      "metric://pilot/rollbacks"
+    ],
+    "rubric_version": "2026.07.0"
+  },
+  "what_would_change_my_mind": [
+    "zero silent rollbacks over 20 samples",
+    "evidence coverage >= 0.60"
+  ],
+  "memo": [
+    {
+      "claim": "readiness or error threshold unmet",
+      "metric_uri": "metric://pilot/rollbacks"
+    },
+    {
+      "claim": "throughput=100",
+      "metric_uri": "metric://pilot/throughput"
+    }
+  ]
+}

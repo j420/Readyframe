@@ -1,0 +1,155 @@
+{
+  "$schema": "../schemas/rollout_blueprint.schema.json",
+  "schema_version": "2.0",
+  "deployment_id": "bare-repo-pilot",
+  "source_readiness_audit": {
+    "inputs_hash": "bare-repo-scenario-static-inventory",
+    "rubric_version": "2026.07.0",
+    "engine_version": "3.0.0",
+    "signature": "450847839979daf5b24bdcaae32ff597467b46e5a6ebe6a55b375cdac41b1b77"
+  },
+  "source_band": "CONDITIONAL",
+  "autonomy_level": "SUPERVISED",
+  "policy_pack": {
+    "id": "healthcare-defaults-v1",
+    "vertical": "healthcare",
+    "defaults": {
+      "max_goal_token_budget": 12000,
+      "pilot_repos": [
+        {
+          "id": "sandbox-claims",
+          "blast_radius": "LOW"
+        },
+        {
+          "id": "staging-claims",
+          "blast_radius": "MEDIUM"
+        },
+        {
+          "id": "production-claims",
+          "blast_radius": "HIGH"
+        }
+      ]
+    },
+    "overrides": []
+  },
+  "rollback_rules": [
+    {
+      "when": "privileged_access.raw < 40",
+      "effect": "REQUIRE_HUMAN",
+      "because": {
+        "sub_score": "privileged_access",
+        "control_clause": "HIPAA 164.312",
+        "evidence_uris": [
+          "evidence://bare-repo/privileged_access"
+        ]
+      }
+    },
+    {
+      "when": "rollback_recovery.raw < 40",
+      "effect": "DENY",
+      "because": {
+        "sub_score": "rollback_recovery",
+        "control_clause": "NIST SP 800-53 CM-5",
+        "evidence_uris": [
+          "evidence://bare-repo/rollback_recovery"
+        ]
+      }
+    },
+    {
+      "when": "evidence_governance.raw < 40",
+      "effect": "REQUIRE_HUMAN",
+      "because": {
+        "sub_score": "evidence_governance",
+        "control_clause": "HIPAA 164.312",
+        "evidence_uris": [
+          "evidence://bare-repo/evidence_governance"
+        ]
+      }
+    }
+  ],
+  "budget": {
+    "goal_token_budget": {
+      "value": 12000,
+      "confidence": 0.2,
+      "evidence_uris": [
+        "evidence://bare-repo/change_management",
+        "evidence://bare-repo/privileged_access",
+        "evidence://bare-repo/rollback_recovery",
+        "evidence://bare-repo/verification",
+        "evidence://bare-repo/observability",
+        "evidence://bare-repo/evidence_governance"
+      ],
+      "rubric_version": "2026.07.0"
+    }
+  },
+  "approval_gates": [
+    {
+      "id": "approve-privileged_access",
+      "required": true,
+      "because": {
+        "sub_score": "privileged_access",
+        "control_clause": "HIPAA 164.312",
+        "evidence_uris": [
+          "evidence://bare-repo/privileged_access"
+        ]
+      }
+    },
+    {
+      "id": "approve-rollback_recovery",
+      "required": true,
+      "because": {
+        "sub_score": "rollback_recovery",
+        "control_clause": "NIST SP 800-53 CM-5",
+        "evidence_uris": [
+          "evidence://bare-repo/rollback_recovery"
+        ]
+      }
+    },
+    {
+      "id": "approve-evidence_governance",
+      "required": true,
+      "because": {
+        "sub_score": "evidence_governance",
+        "control_clause": "HIPAA 164.312",
+        "evidence_uris": [
+          "evidence://bare-repo/evidence_governance"
+        ]
+      }
+    }
+  ],
+  "pilot_repos": [
+    {
+      "id": "sandbox-claims",
+      "blast_radius": "LOW",
+      "because": {
+        "sub_score": "privileged_access",
+        "control_clause": "HIPAA 164.312",
+        "evidence_uris": [
+          "evidence://bare-repo/privileged_access"
+        ]
+      }
+    },
+    {
+      "id": "staging-claims",
+      "blast_radius": "MEDIUM",
+      "because": {
+        "sub_score": "privileged_access",
+        "control_clause": "HIPAA 164.312",
+        "evidence_uris": [
+          "evidence://bare-repo/privileged_access"
+        ]
+      }
+    },
+    {
+      "id": "production-claims",
+      "blast_radius": "HIGH",
+      "because": {
+        "sub_score": "privileged_access",
+        "control_clause": "HIPAA 164.312",
+        "evidence_uris": [
+          "evidence://bare-repo/privileged_access"
+        ]
+      }
+    }
+  ]
+}

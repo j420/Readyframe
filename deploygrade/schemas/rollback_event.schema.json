@@ -1,0 +1,86 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "rollback_event.schema.json",
+  "x-schema-version": "1.0",
+  "type": "object",
+  "required": [
+    "$schema",
+    "schema_version",
+    "signal",
+    "action_id",
+    "reason",
+    "blast_radius",
+    "revert_status",
+    "remediation",
+    "outcome_record",
+    "post_incident_note"
+  ],
+  "properties": {
+    "$schema": {
+      "type": "string"
+    },
+    "schema_version": {
+      "type": "string"
+    },
+    "signal": {
+      "const": "ROLLBACK FIRED"
+    },
+    "action_id": {
+      "type": "string"
+    },
+    "reason": {
+      "type": "string"
+    },
+    "blast_radius": {
+      "type": "object",
+      "required": [
+        "files",
+        "services",
+        "data_touched",
+        "reversibility",
+        "score"
+      ],
+      "properties": {
+        "files": {
+          "type": "number"
+        },
+        "services": {
+          "type": "number"
+        },
+        "data_touched": {
+          "type": "boolean"
+        },
+        "reversibility": {
+          "type": "string",
+          "enum": [
+            "HIGH",
+            "MEDIUM",
+            "LOW"
+          ]
+        },
+        "score": {
+          "type": "number"
+        }
+      },
+      "additionalProperties": false
+    },
+    "revert_status": {
+      "type": "string",
+      "enum": [
+        "REVERTED",
+        "NOTHING_TO_REVERT"
+      ]
+    },
+    "remediation": {
+      "type": "string"
+    },
+    "outcome_record": {
+      "type": "object"
+    },
+    "post_incident_note": {
+      "type": "string",
+      "minLength": 1
+    }
+  },
+  "additionalProperties": false
+}

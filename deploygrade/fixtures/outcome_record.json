@@ -1,0 +1,26 @@
+{
+  "$schema": "../schemas/outcome_record.schema.json",
+  "schema_version": "1.0",
+  "deployment_id": "claims-agent-staging",
+  "predicted": {
+    "outcome": "safe",
+    "score": 883
+  },
+  "observed": {
+    "outcome": "safe",
+    "evidence_uris": [
+      "evidence://pilot/001"
+    ]
+  },
+  "prediction_evidence_quality": {
+    "value": 0.8,
+    "method": "control-coverage",
+    "missing_evidence_uris": [],
+    "stale_evidence_uris": [
+      "evidence://retrieval/2026-07-01"
+    ]
+  },
+  "vertical": "healthcare",
+  "source_tag": "customer-anonymized",
+  "anonymized_id": "f16d05ec6b29248d2c61adb1e9263f78e4f7bace1b955014a2d17872cfe4064d"
+}
