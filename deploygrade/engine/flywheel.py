@@ -1,16 +1,11 @@
 """Transparent deterministic vertical rubric refit; never model fine-tuning."""
-import hashlib, json
 from deploygrade.engine.knowledge import load
-from deploygrade.engine.rubrics import load as load_rubric
+from deploygrade.engine.rubrics import content_hash, load as load_rubric
 from deploygrade.engine.score import score_inventory
 
 
 BASE_VERSION = "2026.07.0"
 PUBLISHED_VERSION = "2026.07.1"
-
-
-def _rubric_hash(version):
-    return hashlib.sha256(json.dumps(load_rubric(version), sort_keys=True, separators=(",", ":")).encode()).hexdigest()
 
 
 def refit(path, vertical):
@@ -26,7 +21,7 @@ def refit(path, vertical):
     before, after = load_rubric(BASE_VERSION), load_rubric(PUBLISHED_VERSION)
     weights = {item["id"]: item["weight"] for item in after["dimensions"]}
     old_weights = {item["id"]: item["weight"] for item in before["dimensions"]}
-    return {"status": "PUBLISHED", "vertical": vertical, "rubric_version": PUBLISHED_VERSION, "rubric_hash": _rubric_hash(PUBLISHED_VERSION), "holdout_accuracy": candidate, "baseline_accuracy": baseline, "accepted_records": len(rows), "holdout_records": holdout, "weights": weights, "diff": {name: round(weights[name] - old_weights[name], 2) for name in weights if weights[name] != old_weights[name]}, "reason": "accepted outcomes show rollback maturity predicts pilot success", "rollback_to": BASE_VERSION}
+    return {"status": "PUBLISHED", "vertical": vertical, "rubric_version": PUBLISHED_VERSION, "rubric_hash": content_hash(PUBLISHED_VERSION), "holdout_accuracy": candidate, "baseline_accuracy": baseline, "accepted_records": len(rows), "holdout_records": holdout, "weights": weights, "diff": {name: round(weights[name] - old_weights[name], 2) for name in weights if weights[name] != old_weights[name]}, "reason": "accepted outcomes show rollback maturity predicts pilot success", "rollback_to": BASE_VERSION}
 
 
 def hero(inventory=None):

@@ -53,9 +53,7 @@ byId('run-demo').addEventListener('click', async () => {
     if (!response.ok) throw new Error(result.error || 'demo workflow failed');
     renderScore(result.readiness_score);
     const rollback = result.blueprint.rollback_rules.map((rule) => `${rule.effect}: ${rule.when}`).join('; ');
-    const before = result.flywheel.before?.score?.value;
-    const after = result.flywheel.after?.score?.value;
-    demoStatus.textContent = `Blueprint ready — ${rollback}. Flywheel ${result.flywheel.refit.rubric_version} published from ${result.flywheel.refit.accepted_records} accepted records: a separate anonymized target engagement score ${before} → ${after}.`;
+    demoStatus.textContent = `Blueprint ready — ${rollback}. Flywheel ${result.flywheel.refit.rubric_version} published: score demonstration ${result.flywheel.v1_score} → ${result.flywheel.v2_score}.`;
   } catch (error) {
     demoStatus.textContent = `Demo workflow was stopped safely: ${error.message}`;
   }

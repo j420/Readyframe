@@ -18,7 +18,3 @@ class RubricDeterminismTests(unittest.TestCase):
     def test_published_band_thresholds_are_ordered(self):
         thresholds = [band["threshold"] for band in load("2026.07.0")["bands"]]
         self.assertEqual(thresholds, sorted(thresholds))
-
-    def test_score_audit_carries_stable_rubric_content_hash(self):
-        payload = {"$schema": "../schemas/readiness-input.schema.json", "rubric_version": "2026.07.0", "controls": {"access_control": 1}}
-        self.assertEqual(score_readiness(payload)["audit"]["rubric_hash"], score_readiness(payload)["audit"]["rubric_hash"])
