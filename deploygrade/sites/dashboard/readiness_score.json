@@ -1,0 +1,172 @@
+{
+  "$schema": "../../schemas/readiness_score.schema.json",
+  "schema_version": "2.0",
+  "score": {
+    "value": 512,
+    "confidence": 0.2,
+    "evidence_uris": [
+      "evidence://bare-repo/change_management",
+      "evidence://bare-repo/privileged_access",
+      "evidence://bare-repo/rollback_recovery",
+      "evidence://bare-repo/verification",
+      "evidence://bare-repo/observability",
+      "evidence://bare-repo/evidence_governance"
+    ],
+    "rubric_version": "2026.07.0"
+  },
+  "band": "CONDITIONAL",
+  "sub_scores": [
+    {
+      "name": "change_management",
+      "raw": 85,
+      "weight": 0.18,
+      "controls": [
+        "change_management"
+      ],
+      "control_clauses": [
+        "PCI DSS 6.4.5.4",
+        "SOC 2 CC8.1",
+        "NIST SP 800-53 CM-3"
+      ],
+      "evidence_uris": [
+        "evidence://bare-repo/change_management"
+      ],
+      "evidence_quality": {
+        "source": "bare-repo static inventory",
+        "freshness": "current",
+        "confidence": 0.75
+      }
+    },
+    {
+      "name": "privileged_access",
+      "raw": 35,
+      "weight": 0.17,
+      "controls": [
+        "privileged_access"
+      ],
+      "control_clauses": [
+        "HIPAA 164.312",
+        "NIST SP 800-53 CM-5"
+      ],
+      "evidence_uris": [
+        "evidence://bare-repo/privileged_access"
+      ],
+      "evidence_quality": {
+        "source": "bare-repo static inventory",
+        "freshness": "stale",
+        "confidence": 0.25
+      }
+    },
+    {
+      "name": "rollback_recovery",
+      "raw": 20,
+      "weight": 0.18,
+      "controls": [
+        "rollback_recovery"
+      ],
+      "control_clauses": [
+        "NIST SP 800-53 CM-5"
+      ],
+      "evidence_uris": [
+        "evidence://bare-repo/rollback_recovery"
+      ],
+      "evidence_quality": {
+        "source": "bare-repo static inventory",
+        "freshness": "missing",
+        "confidence": 0.2
+      }
+    },
+    {
+      "name": "verification",
+      "raw": 85,
+      "weight": 0.16,
+      "controls": [
+        "verification"
+      ],
+      "control_clauses": [
+        "PCI DSS 6.4.5.4"
+      ],
+      "evidence_uris": [
+        "evidence://bare-repo/verification"
+      ],
+      "evidence_quality": {
+        "source": "bare-repo static inventory",
+        "freshness": "current",
+        "confidence": 0.8
+      }
+    },
+    {
+      "name": "observability",
+      "raw": 85,
+      "weight": 0.15,
+      "controls": [
+        "observability"
+      ],
+      "control_clauses": [
+        "SOC 2 CC8.1"
+      ],
+      "evidence_uris": [
+        "evidence://bare-repo/observability"
+      ],
+      "evidence_quality": {
+        "source": "bare-repo static inventory",
+        "freshness": "current",
+        "confidence": 0.85
+      }
+    },
+    {
+      "name": "evidence_governance",
+      "raw": 0,
+      "weight": 0.16,
+      "controls": [
+        "evidence_governance"
+      ],
+      "control_clauses": [
+        "HIPAA 164.312",
+        "SOC 2 CC8.1"
+      ],
+      "evidence_uris": [
+        "evidence://bare-repo/evidence_governance"
+      ],
+      "evidence_quality": {
+        "source": "bare-repo static inventory",
+        "freshness": "missing",
+        "confidence": 0.2
+      }
+    }
+  ],
+  "confidence": {
+    "interval_low": 102,
+    "interval_high": 1000,
+    "method": "evidence-quality-propagation",
+    "drivers": [
+      {
+        "kind": "stale_data",
+        "detail": "privileged-access evidence is stale"
+      },
+      {
+        "kind": "missing_evidence",
+        "detail": "rollback evidence is missing"
+      },
+      {
+        "kind": "missing_evidence",
+        "detail": "evidence-governance evidence is missing"
+      }
+    ]
+  },
+  "counterfactual": [
+    {
+      "action": "Add an automated rollback path",
+      "sub_score_affected": "rollback_recovery",
+      "projected_score_delta": 144,
+      "cost": 2
+    }
+  ],
+  "audit": {
+    "rubric_version": "2026.07.0",
+    "inputs_hash": "bare-repo-scenario-static-inventory",
+    "engine_version": "3.0.0",
+    "generated_at": "1970-01-01T00:00:00Z",
+    "signature": "450847839979daf5b24bdcaae32ff597467b46e5a6ebe6a55b375cdac41b1b77"
+  }
+}

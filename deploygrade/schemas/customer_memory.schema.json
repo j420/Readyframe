@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "customer_memory.schema.json",
+  "x-schema-version": "1.0",
+  "type": "object",
+  "required": ["$schema", "schema_version", "customer_id", "prior_rubric_version", "vertical", "memory_scope"],
+  "properties": {
+    "$schema": {"type": "string", "minLength": 1}, "schema_version": {"type": "string", "minLength": 1},
+    "customer_id": {"type": "string", "minLength": 1}, "prior_rubric_version": {"type": "string", "minLength": 1},
+    "vertical": {"type": "string", "minLength": 1}, "memory_scope": {"type": "string", "enum": ["customer-isolated"]}
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,9 @@
+{
+  "$schema": "../schemas/investigation_report.schema.json",
+  "schema_version": "1.0",
+  "alert_id": "alert-001",
+  "finding": "refresh retrieval evidence before rollout",
+  "evidence_uris": [
+    "evidence://retrieval/2026-07-01"
+  ]
+}

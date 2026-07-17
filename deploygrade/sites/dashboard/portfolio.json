@@ -1,0 +1,1 @@
+[{"deployment_id":"claims-ai","vertical":"healthcare","risk":92,"velocity":80,"evidence_uris":["evidence://rollback"],"action":"Add automated rollback"},{"deployment_id":"fraud-ai","vertical":"finance","risk":88,"velocity":90,"evidence_uris":["evidence://cost"],"action":"Cap spend"}]

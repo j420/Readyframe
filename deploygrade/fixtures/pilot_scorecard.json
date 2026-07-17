@@ -1,0 +1,16 @@
+{
+  "$schema": "../schemas/pilot_scorecard.schema.json",
+  "schema_version": "1.0",
+  "deployment_id": "claims-agent-staging",
+  "readiness_score": 883,
+  "observations": [
+    "human approval pending"
+  ],
+  "metrics": {
+    "throughput": 100,
+    "error_rate": 0.01,
+    "silent_rollbacks": 0,
+    "evidence_coverage": 0.9,
+    "samples": 30
+  }
+}
