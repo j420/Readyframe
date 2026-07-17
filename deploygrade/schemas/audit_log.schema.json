@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "audit_log.schema.json",
+  "x-schema-version": "1.0",
+  "type": "object",
+  "required": ["$schema", "schema_version", "phase", "inputs_hash", "outputs_hash", "rubric_version", "human_approvals", "timestamp", "previous_entry_hash", "entry_hash"],
+  "properties": {
+    "$schema": {"type": "string", "minLength": 1}, "schema_version": {"type": "string", "minLength": 1},
+    "phase": {"type": "string", "minLength": 1}, "inputs_hash": {"type": "string", "minLength": 1}, "outputs_hash": {"type": "string", "minLength": 1},
+    "rubric_version": {"type": "string", "minLength": 1}, "human_approvals": {"type": "array", "items": {"type": "string", "minLength": 1}},
+    "timestamp": {"type": "string", "minLength": 1}, "previous_entry_hash": {"type": "string"}, "entry_hash": {"type": "string", "minLength": 1}
+  },
+  "additionalProperties": false
+}

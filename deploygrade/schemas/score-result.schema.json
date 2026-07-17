@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "score-result.schema.json",
+  "type": "object",
+  "required": [
+    "$schema",
+    "score",
+    "counterfactual"
+  ],
+  "properties": {
+    "score": {
+      "type": "object",
+      "required": [
+        "value",
+        "confidence",
+        "evidence_uris",
+        "rubric_version"
+      ]
+    },
+    "counterfactual": {
+      "type": "string"
+    },
+    "$schema": {
+      "const": "../schemas/score-result.schema.json"
+    }
+  },
+  "x-schema-version": "1.0"
+}

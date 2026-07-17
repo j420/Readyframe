@@ -1,0 +1,11 @@
+{
+  "$schema": "../schemas/portfolio_view.schema.json",
+  "schema_version": "1.0",
+  "portfolio_id": "healthcare-q3",
+  "deployments": [
+    {
+      "deployment_id": "claims-agent-staging",
+      "band": "SCALE"
+    }
+  ]
+}

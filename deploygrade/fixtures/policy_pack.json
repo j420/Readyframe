@@ -1,0 +1,1 @@
+{"$schema":"../schemas/policy_pack.schema.json","schema_version":"1.0","id":"healthcare-defaults-v1","vertical":"healthcare","defaults":{"max_goal_token_budget":12000,"pilot_repos":[{"id":"sandbox-claims","blast_radius":"LOW"},{"id":"staging-claims","blast_radius":"MEDIUM"},{"id":"production-claims","blast_radius":"HIGH"}]},"overrides":[]}

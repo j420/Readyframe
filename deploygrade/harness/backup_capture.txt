@@ -1,0 +1,1 @@
+Backup capture manifest: deterministic demo hero artifact recorded locally. Screen capture fallback is textual because browser capture is unavailable in this environment; reproduce with `make demo`.

@@ -1,0 +1,19 @@
+{
+  "$schema": "../schemas/rubric.schema.json",
+  "schema_version": "1.0",
+  "rubric_version": "2026.07.0",
+  "controls": [
+    {
+      "id": "access_control",
+      "weight": 0.34
+    },
+    {
+      "id": "rollback_plan",
+      "weight": 0.33
+    },
+    {
+      "id": "observability",
+      "weight": 0.33
+    }
+  ]
+}

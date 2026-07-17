@@ -1,0 +1,3 @@
+#!/usr/bin/env sh
+# Enforce DeployGrade's deterministic score and artifact-contract rules.
+exec python3 deploygrade/harness/precommit_guard.py
