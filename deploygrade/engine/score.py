@@ -91,7 +91,7 @@ def score_inventory(inventory: dict, rubric_version: str = "2026.07.0") -> dict:
 def _assemble(sub_scores: list[dict], rubric_version: str, inputs: dict, drivers: list[dict], confidence: float, dimensions=None, bands=BANDS) -> dict:
     dimensions = dimensions or DIMENSIONS
     value = round(sum(item["raw"] * item["weight"] for item in sub_scores) * 10)
-    audit = {"rubric_version": rubric_version, "inputs_hash": _canonical_hash(inputs), "engine_version": ENGINE_VERSION, "generated_at": "1970-01-01T00:00:00Z"}
+    audit = {"rubric_version": rubric_version, "inputs_hash": _canonical_hash(inputs), "rubric_hash": rubric_hash(rubric_version if rubric_version != "r1" else "2026.07.0"), "engine_version": ENGINE_VERSION, "generated_at": "1970-01-01T00:00:00Z"}
     audit["signature"] = _canonical_hash(audit)
     result = {"$schema": "../schemas/readiness_score.schema.json", "schema_version": "2.0",
               "score": {"value": value, "confidence": round(confidence, 2), "evidence_uris": sorted({uri for item in sub_scores for uri in item["evidence_uris"]}), "rubric_version": rubric_version},
