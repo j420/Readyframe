@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "rubric_manifest.schema.json",
+  "type": "object",
+  "required": ["$schema", "schema_version", "rubric_hashes", "publications"],
+  "properties": {
+    "$schema": {"const": "../schemas/rubric_manifest.schema.json"},
+    "schema_version": {"const": "1.0"},
+    "rubric_hashes": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": {"type": "string", "minLength": 64}
+    },
+    "publications": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["vertical", "corpus_hash", "parent_rubric_version", "parent_rubric_hash", "approval_id"],
+        "properties": {
+          "vertical": {"type": "string", "minLength": 1},
+          "corpus_hash": {"type": "string", "minLength": 64},
+          "parent_rubric_version": {"type": "string", "minLength": 1},
+          "parent_rubric_hash": {"type": "string", "minLength": 64},
+          "approval_id": {"type": "string", "minLength": 1}
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

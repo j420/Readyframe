@@ -1,9 +1,1 @@
-{
-  "$schema": "../schemas/investigation_report.schema.json",
-  "schema_version": "1.0",
-  "alert_id": "alert-001",
-  "finding": "refresh retrieval evidence before rollout",
-  "evidence_uris": [
-    "evidence://retrieval/2026-07-01"
-  ]
-}
+{"$schema":"../schemas/investigation_report.schema.json","schema_version":"1.0","alert_id":"alert://cost-spike/claims-agent-staging","deployment_id":"claims-agent-staging","timeline":["metric breach","tool call diverged","compensating rollback fired"],"finding":"Cost-spike alert requires human investigation before further execution.","failed_control":"NIST SP 800-53 CM-5","remediation":"add automated rollback verification","outcome_record":"outcome://claims-agent-staging/001","tool_call":"merge -> metric breach -> git revert","evidence_uris":["evidence://retrieval/2026-07-01"]}

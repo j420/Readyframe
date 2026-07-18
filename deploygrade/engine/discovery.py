@@ -69,6 +69,12 @@ def discover(root: str | Path, environment: str = "unknown") -> dict:
     return inventory
 
 
+def discover_approved(connector: dict, environment: str = "unknown") -> dict:
+    """Discover only from a pre-approved read-only connector; no path input is accepted."""
+    from deploygrade.engine.repository_connector import resolve_approved_fixture
+    return discover(resolve_approved_fixture(connector), environment)
+
+
 if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser()

@@ -14,3 +14,11 @@ class DemoFlowTests(unittest.TestCase):
     def test_demo_refuses_unapproved_repository_profile(self):
         with self.assertRaisesRegex(ValueError, "repo_profile"):
             run("../../etc")
+
+    def test_demo_contract_rejects_tampered_nested_artifact(self):
+        from deploygrade.engine.contracts import validate_artifact
+
+        result = run("mature")
+        result["blueprint"]["source_readiness_audit"]["signature"] = "tampered"
+        with self.assertRaisesRegex(ValueError, "does not retain"):
+            validate_artifact(result)

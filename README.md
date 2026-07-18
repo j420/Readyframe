@@ -29,4 +29,22 @@ A hostile judge should find no magic claim here: scores are code, not prose; rol
 make demo
 make verify
 make redteam
+make verify-static-site
+```
+
+## Continuous verification
+
+GitHub Actions runs the mandatory hook installation, complete deterministic test
+suite, adversarial checks, and local validation of the static Vercel dashboard
+inputs on Python 3.11 and 3.12. `make verify-static-site` verifies the checked-in
+`vercel.json` output directory and dashboard asset references without requiring
+network access or Vercel credentials. It is **not** a Vercel preview/deployment
+check; production readiness still requires an authenticated Vercel build/preview
+and deployed endpoint verification.
+
+When a preview or production deployment is available, verify its live demo
+artifact against the checked-in contracts:
+
+```sh
+DEPLOYGRADE_DEPLOYED_URL=https://your-deployment.example make verify-deployed
 ```
