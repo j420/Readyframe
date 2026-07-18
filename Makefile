@@ -1,4 +1,4 @@
-.PHONY: bootstrap score pilot flywheel demo verify audit redteam redteam-model goal handoffs tamper discovery readiness-fixtures dashboard blueprint pilot-scenarios
+.PHONY: bootstrap score pilot flywheel demo verify verify-static-site verify-deployed audit redteam redteam-model goal handoffs tamper discovery readiness-fixtures dashboard blueprint pilot-scenarios
 
 bootstrap:
 	git config core.hooksPath deploygrade/.githooks
@@ -19,6 +19,13 @@ demo:
 
 verify:
 	python3 -m unittest discover -s deploygrade/tests -v
+
+# Validates checked-in Vercel static input only; this is not a deployed-preview check.
+verify-static-site:
+	python3 -m deploygrade.harness.verify_static_site
+
+verify-deployed:
+	python3 -m deploygrade.harness.verify_deployed
 
 audit:
 	python3 -m deploygrade.harness.audit

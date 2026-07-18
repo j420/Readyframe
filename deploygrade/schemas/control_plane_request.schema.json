@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "control_plane_request.schema.json",
+  "type": "object",
+  "required": ["$schema", "schema_version", "action"],
+  "properties": {
+    "$schema": {"const": "../schemas/control_plane_request.schema.json"},
+    "schema_version": {"const": "1.0"},
+    "action": {"enum": ["create_engagement", "store_artifact", "approve", "create_pilot_job", "job_status"]},
+    "engagement_id": {"type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[A-Za-z0-9_-]+$"},
+    "vertical": {"type": "string", "minLength": 1, "maxLength": 64, "pattern": "^[a-z0-9_-]+$"},
+    "artifact": {"type": "object"},
+    "artifact_hash": {"type": "string", "minLength": 64, "maxLength": 64, "pattern": "^[a-f0-9]{64}$"},
+    "decision": {"enum": ["APPROVED", "REJECTED"]},
+    "approval_id": {"type": "string", "minLength": 36, "maxLength": 36, "pattern": "^[0-9a-f-]{36}$"},
+    "blueprint_hash": {"type": "string", "minLength": 64, "maxLength": 64, "pattern": "^[a-f0-9]{64}$"},
+    "sandbox_repository": {"type": "string", "minLength": 1, "maxLength": 512},
+    "pilot_job_id": {"type": "string", "minLength": 36, "maxLength": 36, "pattern": "^[0-9a-f-]{36}$"}
+  },
+  "additionalProperties": false
+}

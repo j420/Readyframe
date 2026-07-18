@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "pilot_callback_receipt.schema.json",
+  "type": "object",
+  "required": ["$schema", "schema_version", "accepted", "event_id", "event_type"],
+  "properties": {
+    "$schema": {"const": "../schemas/pilot_callback_receipt.schema.json"},
+    "schema_version": {"const": "1.0"},
+    "accepted": {"const": true},
+    "event_id": {"type": "string", "minLength": 1},
+    "event_type": {"type": "string", "minLength": 1}
+  },
+  "additionalProperties": false
+}

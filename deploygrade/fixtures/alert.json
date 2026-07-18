@@ -1,9 +1,1 @@
-{
-  "$schema": "../schemas/alert.schema.json",
-  "schema_version": "1.0",
-  "severity": "HIGH",
-  "message": "stale retrieval evidence",
-  "evidence_uris": [
-    "evidence://retrieval/2026-07-01"
-  ]
-}
+{"$schema":"../schemas/alert.schema.json","schema_version":"1.0","alert_id":"alert://cost-spike/claims-agent-staging","deployment_id":"claims-agent-staging","severity":"HIGH","message":"Cost spike detected for claims-agent-staging; human approval is required.","cost":{"value":750,"confidence":0.8,"evidence_uris":["evidence://retrieval/2026-07-01"],"rubric_version":"2026.07.0"},"readiness_score":{"value":650,"confidence":0.8,"evidence_uris":["evidence://retrieval/2026-07-01"],"rubric_version":"2026.07.0"},"remediation":"cap spend and require human approval","investigate_handoff":"replay://investigate/claims-agent-staging","evidence_uris":["evidence://retrieval/2026-07-01"]}

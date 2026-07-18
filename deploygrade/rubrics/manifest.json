@@ -1,0 +1,18 @@
+{
+  "$schema": "../schemas/rubric_manifest.schema.json",
+  "schema_version": "1.0",
+  "rubric_hashes": {
+    "2026.07.0": "2cc7a1be3004158a4489362a518f81b06767ef811a9c232c91d60b88a9227e7e",
+    "2026.07.1": "9a43bac58e80d3f4041bf682f951d266148dc85a92cd239fb2062b1454806a8f",
+    "2026.07.2": "9dd44c2e403b2a7102a391f87e4256254b4941081c99dbc5c7a95990b6be4fc7"
+  },
+  "publications": {
+    "2026.07.2": {
+      "vertical": "healthcare",
+      "corpus_hash": "1b6aa890d03e3e8d2b83e938faa27e2e773beeeccd72bd3c094b0ed4e440f14d",
+      "parent_rubric_version": "2026.07.0",
+      "parent_rubric_hash": "2cc7a1be3004158a4489362a518f81b06767ef811a9c232c91d60b88a9227e7e",
+      "approval_id": "approval://rubric/healthcare/2026.07.2"
+    }
+  }
+}

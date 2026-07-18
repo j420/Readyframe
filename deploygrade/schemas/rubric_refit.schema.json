@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "rubric_refit.schema.json",
+  "type": "object",
+  "required": ["$schema", "schema_version", "status", "vertical", "corpus_hash", "split_version", "accepted_records", "holdout_records"],
+  "properties": {
+    "$schema": {"const": "../schemas/rubric_refit.schema.json"},
+    "schema_version": {"const": "1.0"},
+    "status": {"type": "string", "enum": ["PUBLISHED", "REFUSED"]},
+    "vertical": {"type": "string", "minLength": 1},
+    "corpus_hash": {"type": "string", "minLength": 64},
+    "split_version": {"type": "string", "minLength": 1},
+    "accepted_records": {"type": "integer", "minimum": 0},
+    "holdout_records": {"type": "integer", "minimum": 0},
+    "reason": {"type": "string", "minLength": 1},
+    "rubric_version": {"type": "string", "minLength": 1},
+    "rubric_hash": {"type": "string", "minLength": 64},
+    "parent_rubric_version": {"type": "string", "minLength": 1},
+    "parent_rubric_hash": {"type": "string", "minLength": 64},
+    "approval_id": {"type": "string", "minLength": 1},
+    "baseline_accuracy": {"type": "number", "minimum": 0, "maximum": 1},
+    "holdout_accuracy": {"type": "number", "minimum": 0, "maximum": 1},
+    "weights": {"type": "object"},
+    "diff": {"type": "object"},
+    "rollback_to": {"type": "string", "minLength": 1}
+  },
+  "additionalProperties": false
+}

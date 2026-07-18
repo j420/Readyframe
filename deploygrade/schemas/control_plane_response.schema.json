@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "control_plane_response.schema.json",
+  "type": "object",
+  "required": ["$schema", "schema_version", "action", "organization_id", "result"],
+  "properties": {
+    "$schema": {"const": "../schemas/control_plane_response.schema.json"},
+    "schema_version": {"const": "1.0"},
+    "action": {"enum": ["create_engagement", "store_artifact", "approve", "create_pilot_job", "job_status"]},
+    "organization_id": {"type": "string", "minLength": 3, "maxLength": 64, "pattern": "^[a-z0-9][a-z0-9_-]*$"},
+    "result": {"type": "object", "minProperties": 1}
+  },
+  "additionalProperties": false
+}
