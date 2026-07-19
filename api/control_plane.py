@@ -1,9 +1,10 @@
 """Authenticated, tenant-scoped control-plane API for Vercel.
 
-Development uses a deterministic HMAC bearer fixture. Production constructs a
-PyJWT-backed OIDC/JWKS verifier from server-only configuration, validates the
-JWT signature before claims, and derives tenant and operator only from that
-verified identity; request JSON and query parameters cannot select a tenant.
+The bearer format is deliberately simple and deterministic for repository-contained
+deployments: ``Bearer dg1.<organization_id>.<subject>.<hmac>`` where ``hmac`` is
+SHA-256 HMAC over ``dg1:<organization_id>:<subject>`` using
+``DEPLOYGRADE_AUTH_SECRET``.  Tenant and approver identity are derived only from
+that signed token; request JSON and query parameters cannot select a tenant.
 """
 from http.server import BaseHTTPRequestHandler
 import hashlib
@@ -15,10 +16,7 @@ from functools import lru_cache
 
 from api.responses import error_artifact
 from deploygrade.engine.contracts import validate_artifact
-from deploygrade.engine.control_plane import ControlPlaneStorage, ControlPlaneStore, validate_sqlite_database_path
-from deploygrade.engine.identity import AuthorizationError, IdentityError, OIDCIdentityVerifier, production_identity_verifier_from_environment
-from deploygrade.engine.postgres_control_plane import PostgresControlPlaneStore
-from deploygrade.engine.production_config import ManagedPostgresConfiguration, ProductionConfigurationError, validate_production_control_plane
+from deploygrade.engine.control_plane import ControlPlaneStore
 
 
 MAX_BODY_BYTES = 262_144
@@ -58,65 +56,15 @@ def authenticate_bearer(values: list[str], secret: str) -> tuple[str, str]:
 
 @lru_cache(maxsize=4)
 def _store(database_path: str) -> ControlPlaneStore:
-    validate_sqlite_database_path(database_path, allow_memory=False)
     return ControlPlaneStore(database_path)
 
 
-@lru_cache(maxsize=4)
-def _postgres_store(database_url: str) -> PostgresControlPlaneStore:
-    """Create the managed, RLS-backed production store only after validation."""
-    return PostgresControlPlaneStore(database_url)
-
-
-_production_identity_verifier: OIDCIdentityVerifier | None = None
-
-def configure_production_identity_verifier(verifier: OIDCIdentityVerifier | None) -> None:
-    """Install a cryptographic OIDC verifier from trusted server bootstrap only.
-
-    The repository never builds this from unverified HTTP headers or decoded JWT
-    claims.  Production remains unavailable until platform bootstrap injects an
-    adapter that verifies signatures against the configured issuer/JWKS.
-    """
-    global _production_identity_verifier
-    _production_identity_verifier = verifier
-
-def validate_control_plane_environment() -> str:
-    """Fail closed unless the selected storage and identity mode are safe."""
-    if os.environ.get("DEPLOYGRADE_ENVIRONMENT", "development") == "production":
-        validate_production_control_plane(os.environ)
-        return ManagedPostgresConfiguration.from_environment(os.environ).database_url
-    if not os.environ.get("DEPLOYGRADE_AUTH_SECRET"):
-        raise ValueError("control-plane authentication is not configured")
+def control_plane_store() -> ControlPlaneStore:
+    """Get the configured durable store; memory storage is forbidden for HTTP."""
     path = os.environ.get("DEPLOYGRADE_CONTROL_PLANE_DB")
     if not path:
         raise ValueError("control-plane storage is not configured")
-    return str(validate_sqlite_database_path(path, allow_memory=False))
-
-def authenticated_identity(values: list[str]) -> tuple[str, str, frozenset[str] | None]:
-    """Authenticate development HMAC or production cryptographically verified OIDC."""
-    if os.environ.get("DEPLOYGRADE_ENVIRONMENT", "development") != "production":
-        organization_id, subject = authenticate_bearer(values, os.environ.get("DEPLOYGRADE_AUTH_SECRET", ""))
-        return organization_id, subject, None
-    try:
-        validate_production_control_plane(os.environ)
-        verifier = _production_identity_verifier or production_identity_verifier_from_environment(os.environ)
-        identity = verifier.authenticate(values)
-    except (IdentityError, ProductionConfigurationError) as error:
-        raise AuthenticationError("authentication required") from error
-    return identity.organization_id, identity.subject, identity.roles
-
-
-def control_plane_store() -> ControlPlaneStorage:
-    """Get the only permitted durable store for the active deployment mode.
-
-    Production selects the psycopg/RLS adapter. Development and controlled test
-    environments retain the local SQLite implementation. There is no production
-    fallback between the two paths.
-    """
-    configured_database = validate_control_plane_environment()
-    if os.environ.get("DEPLOYGRADE_ENVIRONMENT", "development") == "production":
-        return _postgres_store(configured_database)
-    return _store(configured_database)
+    return _store(path)
 
 
 def _required(payload: dict, *names: str) -> None:
@@ -125,7 +73,7 @@ def _required(payload: dict, *names: str) -> None:
         raise ValueError(f"action requires fields: {', '.join(missing)}")
 
 
-def execute(store: ControlPlaneStorage, organization_id: str, subject: str, payload: dict, *, roles: frozenset[str] | None = None) -> dict:
+def execute(store: ControlPlaneStore, organization_id: str, subject: str, payload: dict) -> dict:
     """Execute one tenant-scoped operation after validating its request artifact."""
     validate_artifact(payload)
     # Token-authenticated organizations are provisioned explicitly here, rather
@@ -136,17 +84,6 @@ def execute(store: ControlPlaneStorage, organization_id: str, subject: str, payl
         if "UNIQUE constraint failed" not in str(error):
             raise
     action = payload["action"]
-    # Local HMAC fixtures have no role claim.  Real production OIDC identities
-    # must pass action-level authorization before any state mutation.
-    allowed_roles = {
-        "create_engagement": {"owner", "fde"},
-        "store_artifact": {"owner", "fde", "worker"},
-        "approve": {"owner", "fde", "reviewer"},
-        "create_pilot_job": {"owner", "fde"},
-        "job_status": {"owner", "fde", "reviewer", "viewer", "worker"},
-    }
-    if roles is not None and not allowed_roles[action].intersection(roles):
-        raise AuthorizationError("authorization denied")
     if action == "create_engagement":
         _required(payload, "engagement_id", "vertical")
         store.create_engagement(organization_id, payload["engagement_id"], payload["vertical"])
@@ -183,7 +120,7 @@ class handler(BaseHTTPRequestHandler):
 
     def do_POST(self) -> None:  # noqa: N802
         try:
-            organization_id, subject, roles = authenticated_identity(self.headers.get_all("Authorization", []))
+            organization_id, subject = authenticate_bearer(self.headers.get_all("Authorization", []), os.environ.get("DEPLOYGRADE_AUTH_SECRET", ""))
             lengths = self.headers.get_all("Content-Length", [])
             if len(lengths) != 1:
                 raise ValueError("request must include exactly one Content-Length")
@@ -196,12 +133,8 @@ class handler(BaseHTTPRequestHandler):
             if len(raw) != length:
                 raise ValueError("incomplete request body")
             payload = json.loads(raw.decode("utf-8"))
-            self._send(200, execute(control_plane_store(), organization_id, subject, payload, roles=roles))
+            self._send(200, execute(control_plane_store(), organization_id, subject, payload))
         except AuthenticationError:
-            self._send(401, error_artifact("authentication required"))
-        except AuthorizationError:
-            self._send(403, error_artifact("authorization denied"))
-        except IdentityError:
             self._send(401, error_artifact("authentication required"))
         except (UnicodeDecodeError, json.JSONDecodeError, ValueError) as error:
             self._send(400, error_artifact(str(error)))

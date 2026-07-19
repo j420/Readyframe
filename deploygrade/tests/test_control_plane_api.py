@@ -6,9 +6,8 @@ import json
 from http.client import HTTPConnection
 from http.server import HTTPServer
 from threading import Thread
-from unittest.mock import patch
 
-from api.control_plane import authenticate_bearer, control_plane_store, execute, handler, make_bearer_token, _store
+from api.control_plane import authenticate_bearer, execute, handler, make_bearer_token, _store
 from deploygrade.engine.control_plane import ControlPlaneStore
 
 
@@ -48,26 +47,6 @@ class ControlPlaneApiTests(unittest.TestCase):
         execute(self.store, "acme", "operator", request("create_engagement", engagement_id="engagement_a", vertical="healthcare"))
         with self.assertRaisesRegex(ValueError, "unknown tenant-scoped engagement"):
             execute(self.store, "other", "operator", request("store_artifact", engagement_id="engagement_a", artifact={"$schema": "../schemas/api_error.schema.json", "schema_version": "1.0", "error": "safe"}))
-
-    def test_oidc_roles_are_enforced_at_each_mutating_action(self):
-        payload = request("create_engagement", engagement_id="engagement_a", vertical="healthcare")
-        with self.assertRaisesRegex(ValueError, "authorization denied"):
-            execute(self.store, self.organization, self.subject, payload, roles=frozenset({"viewer"}))
-        response = execute(self.store, self.organization, self.subject, payload, roles=frozenset({"fde"}))
-        self.assertEqual(response["result"], {"engagement_id": "engagement_a"})
-
-    def test_production_selects_managed_postgres_and_never_sqlite(self):
-        environment = {
-            "DEPLOYGRADE_ENVIRONMENT": "production", "DEPLOYGRADE_CONTROL_PLANE_BACKEND": "postgres",
-            "DEPLOYGRADE_AUTH_MODE": "oidc", "DEPLOYGRADE_OIDC_ISSUER": "https://issuer.deploygrade.test",
-            "DEPLOYGRADE_OIDC_AUDIENCE": "deploygrade-control-plane",
-            "DEPLOYGRADE_OIDC_JWKS_URI": "https://issuer.deploygrade.test/jwks",
-            "DATABASE_URL": "postgresql://service:secret@db.deploygrade.test/deploygrade?sslmode=verify-full",
-        }
-        expected = object()
-        with patch.dict(os.environ, environment, clear=True), patch("api.control_plane._postgres_store", return_value=expected) as postgres:
-            self.assertIs(control_plane_store(), expected)
-        postgres.assert_called_once_with(environment["DATABASE_URL"])
 
     def test_malformed_action_missing_required_fields_is_rejected(self):
         with self.assertRaisesRegex(ValueError, "requires fields"):

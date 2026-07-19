@@ -28,19 +28,6 @@ class ContractDeterminismTests(unittest.TestCase):
         connector = approved_fixture("mature-v1", organization_id="org-test", engagement_id="engagement-test")
         self.assertEqual(discover_approved(connector, "sandbox"), discover_approved(connector, "sandbox"))
 
-    def test_metadata_only_github_inventory_is_deterministic(self):
-        from deploygrade.engine.worker_runtime import _github_snapshot_inventory
-        snapshot = {
-            "repository": {"owner": "deploygrade", "name": "readyframe", "revision": "a" * 40},
-        }
-        self.assertEqual(_github_snapshot_inventory(snapshot, "staging"), _github_snapshot_inventory(snapshot, "staging"))
-
-    def test_github_content_rules_are_deterministic(self):
-        from deploygrade.engine.github_connector import GitHubRepositoryConnector
-
-        arguments = ("scripts/rollback.sh", "set -e\ngit revert HEAD")
-        self.assertEqual(GitHubRepositoryConnector._rules(*arguments), GitHubRepositoryConnector._rules(*arguments))
-
     def test_manifest_min_properties_is_enforced(self):
         artifact = {
             "$schema": "../schemas/rubric_manifest.schema.json",

@@ -8,63 +8,10 @@ import hashlib
 import json
 import sqlite3
 import uuid
-import secrets
-from contextlib import contextmanager
-from threading import RLock
-from typing import Callable, Protocol, TypeVar, runtime_checkable
 from datetime import datetime, timezone
 from pathlib import Path
 
 from deploygrade.engine.contracts import validate_artifact
-
-
-@runtime_checkable
-class ControlPlaneStorage(Protocol):
-    """Durable tenant-scoped persistence boundary used by HTTP and workers."""
-    def create_organization(self, organization_id: str) -> None: ...
-    def create_engagement(self, organization_id: str, engagement_id: str, vertical: str) -> None: ...
-    def store_artifact(self, organization_id: str, engagement_id: str, payload: dict) -> str: ...
-    def approve(self, organization_id: str, engagement_id: str, artifact_hash: str, approved_by: str, decision: str = "APPROVED") -> str: ...
-    def create_pilot_job(self, organization_id: str, engagement_id: str, blueprint_hash: str, approval_id: str, sandbox_repository: str) -> str: ...
-    def record_callback(self, organization_id: str, event: dict) -> None: ...
-    def issue_callback_authorization(self, organization_id: str, pilot_job_id: str, *, ttl_seconds: int = 300) -> dict: ...
-    def revoke_callback_authorization(self, organization_id: str, route_id: str) -> None: ...
-    def callback_authorization(self, route_id: str) -> dict: ...
-    def record_authorized_callback(self, route_id: str, event: dict) -> None: ...
-    def job_status(self, organization_id: str, job_id: str) -> str: ...
-    def readiness(self) -> dict: ...
-
-def validate_sqlite_database_path(database: str | Path, *, allow_memory: bool = False) -> Path:
-    """Validate a configured durable SQLite location before opening it.
-
-    HTTP deployments must pass an absolute path on an existing, non-symlinked
-    directory.  ``:memory:`` remains available only for isolated unit tests.
-    """
-    if str(database) == ":memory:":
-        if allow_memory:
-            return Path(":memory:")
-        raise ValueError("durable control-plane storage cannot use :memory:")
-    path = Path(database)
-    if not path.is_absolute():
-        raise ValueError("control-plane database path must be absolute")
-    parent = path.parent
-    if not parent.is_dir() or parent.is_symlink():
-        raise ValueError("control-plane database directory must exist and not be a symlink")
-    if path.exists() and (not path.is_file() or path.is_symlink()):
-        raise ValueError("control-plane database must be a regular non-symlink file")
-    return path
-
-
-_T = TypeVar("_T")
-
-
-def _atomic_mutation(method: Callable[..., _T]) -> Callable[..., _T]:
-    """Run each externally visible write operation as one locked transaction."""
-    def wrapped(self: "ControlPlaneStore", *args, **kwargs) -> _T:
-        with self._transaction():
-            return method(self, *args, **kwargs)
-    return wrapped
-
 
 
 def canonical_hash(payload: dict) -> str:
@@ -100,15 +47,9 @@ class ControlPlaneStore:
     hash or job id.
     """
     def __init__(self, database: str | Path = ":memory:"):
-        path = validate_sqlite_database_path(database, allow_memory=True)
-        self.database_path = path
-        self._lock = RLock()
-        self.connection = sqlite3.connect(str(path), check_same_thread=False, isolation_level=None)
+        self.connection = sqlite3.connect(str(database))
         self.connection.row_factory = sqlite3.Row
         self.connection.execute("PRAGMA foreign_keys = ON")
-        self.connection.execute("PRAGMA journal_mode = WAL")
-        self.connection.execute("PRAGMA synchronous = FULL")
-        self.connection.execute("PRAGMA busy_timeout = 5000")
         self.connection.executescript("""
             CREATE TABLE IF NOT EXISTS organizations (id TEXT PRIMARY KEY);
             CREATE TABLE IF NOT EXISTS engagements (
@@ -129,47 +70,21 @@ class ControlPlaneStore:
               event_id TEXT PRIMARY KEY, organization_id TEXT NOT NULL REFERENCES organizations(id),
               pilot_job_id TEXT NOT NULL REFERENCES pilot_jobs(id), blueprint_hash TEXT NOT NULL,
               event_type TEXT NOT NULL, payload TEXT NOT NULL);
-            CREATE TABLE IF NOT EXISTS callback_authorizations (
-              route_id TEXT PRIMARY KEY, organization_id TEXT NOT NULL REFERENCES organizations(id),
-              pilot_job_id TEXT NOT NULL REFERENCES pilot_jobs(id), blueprint_hash TEXT NOT NULL,
-              signing_secret TEXT NOT NULL, expires_at TEXT NOT NULL, revoked_at TEXT);
         """)
-
-    @contextmanager
-    def _transaction(self):
-        """Serialize write operations and guarantee rollback on every failure."""
-        with self._lock:
-            self.connection.execute("BEGIN IMMEDIATE")
-            try:
-                yield
-            except BaseException:
-                self.connection.rollback()
-                raise
-            else:
-                self.connection.commit()
-
-    def readiness(self) -> dict:
-        """Return operational readiness without exposing storage internals."""
-        try:
-            with self._lock:
-                self.connection.execute("SELECT 1").fetchone()
-        except sqlite3.Error as error:
-            raise ValueError("control-plane storage is unavailable") from error
-        return {"backend": "sqlite", "durable": str(self.database_path) != ":memory:", "ready": True}
+        self.connection.commit()
 
     def close(self) -> None:
         self.connection.close()
 
-    @_atomic_mutation
     def create_organization(self, organization_id: str) -> None:
         self.connection.execute("INSERT INTO organizations(id) VALUES (?)", (organization_id,))
+        self.connection.commit()
 
-    @_atomic_mutation
     def create_engagement(self, organization_id: str, engagement_id: str, vertical: str) -> None:
         self._organization(organization_id)
         self.connection.execute("INSERT INTO engagements(id, organization_id, vertical) VALUES (?,?,?)", (engagement_id, organization_id, vertical))
+        self.connection.commit()
 
-    @_atomic_mutation
     def store_artifact(self, organization_id: str, engagement_id: str, payload: dict) -> str:
         """Validate then content-address an immutable artifact; conflicts fail closed."""
         validate_artifact(payload)
@@ -182,18 +97,18 @@ class ControlPlaneStore:
                 raise ValueError("artifact hash is already bound to a different tenant or engagement")
             return digest
         self.connection.execute("INSERT INTO artifacts(hash,organization_id,engagement_id,schema_uri,payload) VALUES (?,?,?,?,?)", (digest, organization_id, engagement_id, payload["$schema"], serialized))
+        self.connection.commit()
         return digest
 
-    @_atomic_mutation
     def approve(self, organization_id: str, engagement_id: str, artifact_hash: str, approved_by: str, decision: str = "APPROVED") -> str:
         if decision not in {"APPROVED", "REJECTED"}:
             raise ValueError("unknown approval decision")
         self._artifact(organization_id, engagement_id, artifact_hash)
         approval_id = str(uuid.uuid4())
         self.connection.execute("INSERT INTO approvals VALUES (?,?,?,?,?,?)", (approval_id, organization_id, engagement_id, artifact_hash, decision, approved_by))
+        self.connection.commit()
         return approval_id
 
-    @_atomic_mutation
     def create_pilot_job(self, organization_id: str, engagement_id: str, blueprint_hash: str, approval_id: str, sandbox_repository: str) -> str:
         blueprint = self._artifact(organization_id, engagement_id, blueprint_hash)
         if blueprint["schema_uri"] != "../schemas/rollout_blueprint.schema.json":
@@ -205,20 +120,26 @@ class ControlPlaneStore:
             raise ValueError("Pilot job requires an approved sandbox repository")
         job_id = str(uuid.uuid4())
         self.connection.execute("INSERT INTO pilot_jobs VALUES (?,?,?,?,?,?,?)", (job_id, organization_id, engagement_id, blueprint_hash, approval_id, sandbox_repository, "QUEUED"))
+        self.connection.commit()
         return job_id
 
-    def _record_callback_unlocked(self, organization_id: str, event: dict) -> None:
-        """Persist one validated callback while an enclosing transaction is held."""
+    def record_callback(self, organization_id: str, event: dict) -> None:
+        """Persist one validated callback only when it matches an approved job."""
         validate_artifact(event)
         _validate_callback_identity(event)
-        if self.connection.execute("SELECT 1 FROM pilot_events WHERE event_id=?", (event["event_id"],)).fetchone():
-            raise ValueError("duplicate callback event")
         job = self.connection.execute("SELECT * FROM pilot_jobs WHERE id=? AND organization_id=?", (event["pilot_job_id"], organization_id)).fetchone()
         if not job or job["blueprint_hash"] != event["blueprint_hash"]:
             raise ValueError("callback job and blueprint lineage is unknown or mismatched")
         if job["status"] in {"REVERTED", "COMPLETE", "FAILED"}:
             raise ValueError("callback targets a terminal Pilot job")
+        # A breach must be fail-closed.  In particular, an untrusted callback
+        # must not be able to silently turn a paused job back into RUNNING.
+        # The only permitted follow-up is evidence that the compensating revert
+        # completed; a human-approved, separately audited workflow is required
+        # before any new Pilot job can be dispatched.
         allowed_events = {
+            # A pre-start breach/rollback signal is safe to record: it can only
+            # move the job into PAUSED, never authorize execution.
             "QUEUED": {"PILOT_STARTED", "THRESHOLD_BREACHED", "ROLLBACK_FIRED", "PILOT_PAUSED"},
             "RUNNING": {"ACTION_DENIED", "METRIC_RECORDED", "THRESHOLD_BREACHED", "ROLLBACK_FIRED", "COMPENSATING_REVERTED", "PILOT_PAUSED"},
             "PAUSED": {"COMPENSATING_REVERTED"},
@@ -232,55 +153,7 @@ class ControlPlaneStore:
         status = {"PILOT_STARTED": "RUNNING", "THRESHOLD_BREACHED": "PAUSED", "ROLLBACK_FIRED": "PAUSED", "PILOT_PAUSED": "PAUSED", "COMPENSATING_REVERTED": "REVERTED"}.get(event["event_type"])
         if status:
             self.connection.execute("UPDATE pilot_jobs SET status=? WHERE id=?", (status, job["id"]))
-
-    @_atomic_mutation
-    def record_callback(self, organization_id: str, event: dict) -> None:
-        """Legacy internal ingestion path; HTTP ingress must use route authorization."""
-        self._record_callback_unlocked(organization_id, event)
-
-    @_atomic_mutation
-    def issue_callback_authorization(self, organization_id: str, pilot_job_id: str, *, ttl_seconds: int = 300) -> dict:
-        """Issue one short-lived callback credential for an exact non-terminal job.
-
-        The raw signing secret is returned exactly once to the trusted dispatcher;
-        callers must place it in a worker secret channel, never an artifact.
-        """
-        if not isinstance(ttl_seconds, int) or isinstance(ttl_seconds, bool) or not 30 <= ttl_seconds <= 3600:
-            raise ValueError("callback authorization ttl must be between 30 and 3600 seconds")
-        job = self.connection.execute("SELECT * FROM pilot_jobs WHERE id=? AND organization_id=?", (pilot_job_id, organization_id)).fetchone()
-        if not job or job["status"] not in {"QUEUED", "RUNNING", "PAUSED"}:
-            raise ValueError("callback authorization requires a non-terminal tenant-scoped Pilot job")
-        now = datetime.now(timezone.utc)
-        expires_at = now.timestamp() + ttl_seconds
-        route_id = uuid.uuid4().hex
-        secret = secrets.token_urlsafe(32)
-        self.connection.execute("INSERT INTO callback_authorizations VALUES (?,?,?,?,?,?,NULL)", (route_id, organization_id, pilot_job_id, job["blueprint_hash"], secret, datetime.fromtimestamp(expires_at, timezone.utc).isoformat().replace("+00:00", "Z")))
-        return {"route_id": route_id, "organization_id": organization_id, "pilot_job_id": pilot_job_id, "blueprint_hash": job["blueprint_hash"], "signing_secret": secret, "expires_at": datetime.fromtimestamp(expires_at, timezone.utc).isoformat().replace("+00:00", "Z")}
-
-    @_atomic_mutation
-    def revoke_callback_authorization(self, organization_id: str, route_id: str) -> None:
-        row = self.connection.execute("SELECT organization_id FROM callback_authorizations WHERE route_id=?", (route_id,)).fetchone()
-        if not row or row["organization_id"] != organization_id:
-            raise ValueError("unknown tenant-scoped callback authorization")
-        self.connection.execute("UPDATE callback_authorizations SET revoked_at=? WHERE route_id=? AND revoked_at IS NULL", (datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"), route_id))
-
-    def callback_authorization(self, route_id: str) -> dict:
-        """Read only an active, unexpired authorization; secrets stay server-side."""
-        row = self.connection.execute("SELECT * FROM callback_authorizations WHERE route_id=?", (route_id,)).fetchone()
-        if not row or row["revoked_at"] is not None:
-            raise ValueError("unknown callback authorization route")
-        expires = datetime.fromisoformat(row["expires_at"].replace("Z", "+00:00"))
-        if expires <= datetime.now(timezone.utc):
-            raise ValueError("callback authorization has expired")
-        return dict(row)
-
-    @_atomic_mutation
-    def record_authorized_callback(self, route_id: str, event: dict) -> None:
-        """Atomically recheck active route lineage and persist its callback."""
-        auth = self.callback_authorization(route_id)
-        if event.get("pilot_job_id") != auth["pilot_job_id"] or event.get("blueprint_hash") != auth["blueprint_hash"]:
-            raise ValueError("callback body does not match configured Pilot authorization")
-        self._record_callback_unlocked(auth["organization_id"], event)
+        self.connection.commit()
 
     def job_status(self, organization_id: str, job_id: str) -> str:
         row = self.connection.execute("SELECT status FROM pilot_jobs WHERE id=? AND organization_id=?", (job_id, organization_id)).fetchone()

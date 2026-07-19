@@ -1,13 +1,12 @@
 """Fail-closed, signed Pilot event callback for the Vercel control plane.
 
-In production this endpoint accepts events only through an explicitly configured
-CallbackIngestionAdapter, which supplies durable replay protection and immutable
-job/blueprint lineage.  The process-local replay cache exists solely for legacy
-non-production tests and must never authorize a production Pilot worker.
+This endpoint only accepts events that are schema-valid and have not already been
+accepted by this process. Durable replay protection and job/blueprint lineage
+validation must be supplied by the control-plane persistence layer before a
+production Pilot worker is connected.
 """
 from http.server import BaseHTTPRequestHandler
 from collections import OrderedDict
-from functools import lru_cache
 from datetime import datetime, timezone
 import hashlib
 import hmac
@@ -15,8 +14,6 @@ import json
 import os
 import threading
 import uuid
-from urllib.parse import urlsplit
-import re
 
 from api.responses import error_artifact
 from deploygrade.engine.contracts import validate_artifact
@@ -147,6 +144,69 @@ def _receipt(event: dict) -> dict:
     validate_artifact(payload)
     return payload
 
+MAX_BODY_BYTES = 32_768
+MAX_REPLAY_IDS = 4_096
+_SCHEMA_URI = "../schemas/pilot_callback.schema.json"
+_seen_event_ids: OrderedDict[str, None] = OrderedDict()
+_seen_event_ids_lock = threading.Lock()
+
+
+class ReplayDetected(ValueError):
+    """Raised when the same signed callback event is delivered twice."""
+
+
+def _validate_event_identity(event: dict) -> None:
+    """Reject ambiguous event identifiers and invalid timestamps."""
+    if not isinstance(event, dict):
+        raise ValueError("callback body must be a JSON object")
+    event_id = event.get("event_id")
+    if not isinstance(event_id, str):
+        raise ValueError("event_id must be a UUID string")
+    try:
+        parsed_id = uuid.UUID(event_id)
+    except (ValueError, AttributeError) as error:
+        raise ValueError("event_id must be a UUID string") from error
+    if str(parsed_id) != event_id.lower():
+        raise ValueError("event_id must be a canonical UUID string")
+
+    occurred_at = event.get("occurred_at")
+    if not isinstance(occurred_at, str) or not occurred_at.endswith("Z"):
+        raise ValueError("occurred_at must be an RFC3339 UTC timestamp")
+    try:
+        parsed_time = datetime.fromisoformat(occurred_at[:-1] + "+00:00")
+    except ValueError as error:
+        raise ValueError("occurred_at must be an RFC3339 UTC timestamp") from error
+    if parsed_time.tzinfo != timezone.utc:
+        raise ValueError("occurred_at must be an RFC3339 UTC timestamp")
+
+
+def _record_event_id(event_id: str) -> None:
+    """Record an accepted event ID atomically; a duplicate fails closed."""
+    with _seen_event_ids_lock:
+        if event_id in _seen_event_ids:
+            raise ReplayDetected("duplicate callback event_id")
+        _seen_event_ids[event_id] = None
+        if len(_seen_event_ids) > MAX_REPLAY_IDS:
+            _seen_event_ids.popitem(last=False)
+
+
+def _clear_replay_cache_for_test() -> None:
+    """Test-only helper; production code never clears accepted callback IDs."""
+    with _seen_event_ids_lock:
+        _seen_event_ids.clear()
+
+
+def _receipt(event: dict) -> dict:
+    payload = {
+        "$schema": "../schemas/pilot_callback_receipt.schema.json",
+        "schema_version": "1.0",
+        "accepted": True,
+        "event_id": event["event_id"],
+        "event_type": event["event_type"],
+    }
+    validate_artifact(payload)
+    return payload
+
 
 class handler(BaseHTTPRequestHandler):
     """Accept one signed, schema-valid Pilot callback event or reject it."""
@@ -162,9 +222,8 @@ class handler(BaseHTTPRequestHandler):
 
     def do_POST(self) -> None:  # noqa: N802 - required by BaseHTTPRequestHandler
         try:
-            durable_adapter = _active_durable_adapter()
             secret = os.environ.get("PILOT_CALLBACK_SECRET")
-            if durable_adapter is None and not secret:
+            if not secret:
                 raise ValueError("Pilot callback is not configured")
             if self.headers.get("Content-Type", "").split(";", 1)[0].lower() != "application/json":
                 raise ValueError("Content-Type must be application/json")
@@ -184,12 +243,6 @@ class handler(BaseHTTPRequestHandler):
             if len(signature_values) != 1:
                 raise ValueError("callback must include exactly one signature")
             supplied = signature_values[0]
-            if durable_adapter is not None:
-                # The durable adapter owns signature validation, authorization,
-                # replay protection, and state transitions.  Do not touch the
-                # process-local cache on this production path.
-                self._send(202, durable_adapter.ingest(_route_id(self.path), raw, supplied))
-                return
             expected = hmac.new(secret.encode("utf-8"), raw, hashlib.sha256).hexdigest()
             if not hmac.compare_digest(supplied, expected):
                 raise ValueError("invalid callback signature")
@@ -202,8 +255,7 @@ class handler(BaseHTTPRequestHandler):
         except ReplayDetected as error:
             self._send(409, error_artifact(str(error)))
         except (UnicodeDecodeError, json.JSONDecodeError, ValueError) as error:
-            status = 409 if str(error) == "duplicate callback event" else 400
-            self._send(status, error_artifact(str(error)))
+            self._send(400, error_artifact(str(error)))
 
     def _method_not_allowed(self) -> None:
         self._send(405, error_artifact("use POST with a signed Pilot callback artifact"))

@@ -1,4 +1,4 @@
-.PHONY: bootstrap score pilot flywheel demo verify verify-static-site verify-deployed verify-runtime-config verify-release-evidence audit redteam redteam-model goal handoffs tamper discovery readiness-fixtures dashboard blueprint pilot-scenarios
+.PHONY: bootstrap score pilot flywheel demo verify verify-static-site verify-deployed audit redteam redteam-model goal handoffs tamper discovery readiness-fixtures dashboard blueprint pilot-scenarios
 
 bootstrap:
 	python3 -m pip install --disable-pip-version-check -r requirements-production.txt
@@ -27,14 +27,6 @@ verify-static-site:
 
 verify-deployed:
 	python3 -m deploygrade.harness.verify_deployed
-
-# Validates configured runtime shape only; production mode fails closed on missing placeholders.
-verify-runtime-config:
-	python3 -m deploygrade.harness.verify_runtime_config
-
-# Validates a signed-off external deployment attestation; it cannot provision services.
-verify-release-evidence:
-	python3 -m deploygrade.harness.verify_release_evidence
 
 audit:
 	python3 -m deploygrade.harness.audit

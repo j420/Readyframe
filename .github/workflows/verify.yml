@@ -30,9 +30,3 @@ jobs:
         run: make redteam
       - name: Validate Vercel static deployment inputs
         run: make verify-static-site
-
-      - name: Validate configured deployed preview
-        if: ${{ vars.DEPLOYGRADE_DEPLOYED_URL != '' }}
-        env:
-          DEPLOYGRADE_DEPLOYED_URL: ${{ vars.DEPLOYGRADE_DEPLOYED_URL }}
-        run: make verify-deployed

@@ -192,46 +192,6 @@ def _validate_approved_repository_connector_semantics(payload: dict) -> None:
         raise ValueError("semantic mismatch: evidence manifest paths must be unique and sorted")
 
 
-
-def _validate_github_repository_snapshot_semantics(payload: dict) -> None:
-    """Bind a GitHub evidence manifest to the approved immutable revision."""
-    repository = payload["repository"]
-    if repository["provider"] != "github" or payload["commit"]["sha"] != repository["revision"]:
-        raise ValueError("semantic mismatch: GitHub commit must match the approved revision")
-    manifest = payload["evidence_manifest"]
-    unsigned_manifest = {key: manifest[key] for key in ("tree_sha", "files")}
-    expected_hash = hashlib.sha256(json.dumps(unsigned_manifest, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
-    if manifest["content_hash"] != expected_hash:
-        raise ValueError("semantic mismatch: GitHub evidence manifest hash does not match its contents")
-    paths = [entry["path"] for entry in manifest["files"]]
-    if paths != sorted(paths) or len(paths) != len(set(paths)):
-        raise ValueError("semantic mismatch: GitHub evidence paths must be unique and sorted")
-
-
-def _validate_github_content_evidence_semantics(payload: dict) -> None:
-    """Content evidence is redacted, bounded, and pinned to one snapshot manifest."""
-    if payload["policy"]["source_retention"] != "NONE":
-        raise ValueError("semantic mismatch: GitHub source retention must be NONE")
-    blobs = payload["examined_blobs"]
-    paths = [blob["path"] for blob in blobs]
-    if paths != sorted(paths) or len(paths) != len(set(paths)):
-        raise ValueError("semantic mismatch: examined GitHub blobs must be unique and sorted")
-    if sum(blob["size"] for blob in blobs) > payload["policy"]["max_total_bytes"]:
-        raise ValueError("semantic mismatch: GitHub content evidence exceeds its byte policy")
-    blob_by_path = {blob["path"]: blob for blob in blobs}
-    finding_order = []
-    for finding in payload["findings"]:
-        blob = blob_by_path.get(finding["path"])
-        if blob is None or any(finding[key] != blob[key] for key in ("git_blob_sha", "content_sha256")):
-            raise ValueError("semantic mismatch: GitHub finding is not bound to an examined blob")
-        finding_order.append((finding["category"], finding["path"], finding["rule_id"]))
-    if finding_order != sorted(finding_order) or len(finding_order) != len(set(finding_order)):
-        raise ValueError("semantic mismatch: GitHub findings must be unique and sorted")
-    unsigned = {key: payload[key] for key in ("snapshot_manifest_hash", "examined_blobs", "findings")}
-    expected = hashlib.sha256(json.dumps(unsigned, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
-    if payload["content_evidence_hash"] != expected:
-        raise ValueError("semantic mismatch: GitHub content evidence hash does not match its contents")
-
 def _validate_worker_dispatch_semantics(payload: dict) -> None:
     """Worker requests have immutable approval/blueprint lineage and no path escape hatch."""
     if payload["approval"]["blueprint_hash"] != payload["blueprint_hash"]:
@@ -245,26 +205,6 @@ def _validate_sandbox_status_event_semantics(payload: dict) -> None:
     unsafe = payload["state"] in {"PAUSED", "FAILED"}
     if payload["human_escalation_required"] != unsafe:
         raise ValueError("semantic mismatch: unsafe sandbox state must escalate to a human")
-
-
-def _validate_worker_runtime_result_semantics(payload: dict) -> None:
-    """A reference worker result must retain only validated status/evidence artifacts."""
-    for event in payload["events"]:
-        validate_artifact(event)
-        if event["dispatch_hash"] != payload["dispatch_hash"]:
-            raise ValueError("semantic mismatch: worker event references another dispatch")
-    states = [event["state"] for event in payload["events"]]
-    if payload["outcome"] == "DISCOVERY_COMPLETED":
-        if states != ["RECEIVED", "RUNNING", "COMPLETED"] or payload["human_escalation_required"]:
-            raise ValueError("semantic mismatch: discovery result has an invalid worker state sequence")
-        if "inventory" not in payload:
-            raise ValueError("semantic mismatch: completed discovery needs an inventory")
-        validate_artifact(payload["inventory"])
-    else:
-        if states != ["RECEIVED", "FAILED"] or not payload["human_escalation_required"]:
-            raise ValueError("semantic mismatch: denied Pilot must fail closed and escalate")
-        if "inventory" in payload:
-            raise ValueError("semantic mismatch: denied Pilot must not emit discovery evidence")
 
 
 def validate_schema_shape(payload: dict) -> None:
@@ -292,13 +232,7 @@ def validate_artifact(payload: dict) -> None:
         _validate_rubric_refit_semantics(payload)
     if schema_uri.endswith("/approved_repository_connector.schema.json"):
         _validate_approved_repository_connector_semantics(payload)
-    if schema_uri.endswith("/github_repository_snapshot.schema.json"):
-        _validate_github_repository_snapshot_semantics(payload)
-    if schema_uri.endswith("/github_content_evidence.schema.json"):
-        _validate_github_content_evidence_semantics(payload)
     if schema_uri.endswith("/worker_dispatch.schema.json"):
         _validate_worker_dispatch_semantics(payload)
     if schema_uri.endswith("/sandbox_status_event.schema.json"):
         _validate_sandbox_status_event_semantics(payload)
-    if schema_uri.endswith("/worker_runtime_result.schema.json"):
-        _validate_worker_runtime_result_semantics(payload)
