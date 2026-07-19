@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "worker_runtime_result.schema.json",
+  "type": "object",
+  "required": ["$schema", "schema_version", "dispatch_hash", "outcome", "events", "human_escalation_required"],
+  "properties": {
+    "$schema": {"const": "../schemas/worker_runtime_result.schema.json"},
+    "schema_version": {"const": "1.0"},
+    "dispatch_hash": {"type": "string", "pattern": "^[a-f0-9]{64}$"},
+    "outcome": {"type": "string", "enum": ["DISCOVERY_COMPLETED", "PILOT_DENIED"]},
+    "events": {"type": "array", "minItems": 2, "items": {"type": "object"}},
+    "inventory": {"type": "object"},
+    "human_escalation_required": {"type": "boolean"}
+  },
+  "additionalProperties": false
+}

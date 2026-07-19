@@ -23,6 +23,16 @@
       <div><p class="eyebrow">LIVE DEMO PATH</p><h2 id="demo-title">Discovery → Score → Blueprint → Flywheel</h2><p>Run the approved, read-only demo repository through the real deterministic chain. The result includes the score-derived rollout gates and the rubric-refit hero artifact.</p></div>
       <div><label>Repository profile <select id="demo-profile"><option value="deceptive">Deceptive repository</option><option value="mature">Mature repository</option></select></label><button id="run-demo" type="button">Run live demo path</button><p id="demo-status" role="status"></p></div>
     </section>
+    <section class="intake operator-console" aria-labelledby="operator-title">
+      <div><p class="eyebrow">AUTHENTICATED OPERATOR CONTROL</p><h2 id="operator-title">Submit a control-plane artifact</h2><p>This console is available only when a deployment injects an in-memory operator token. It never stores, displays, or sends that token anywhere except the configured control-plane endpoint. It records workflow requests; it does not start, execute, or claim a live worker.</p></div>
+      <form id="control-plane-form">
+        <label for="control-plane-request">Schema-valid request artifact<textarea id="control-plane-request" name="request" rows="11" spellcheck="false" aria-describedby="control-plane-help"></textarea></label>
+        <p id="control-plane-help" class="operator-help">Authentication is not configured for this dashboard runtime.</p>
+        <button id="control-plane-submit" type="submit" disabled>Submit authenticated request</button>
+        <p id="control-plane-status" role="status"></p>
+        <pre id="control-plane-result" aria-live="polite" hidden></pre>
+      </form>
+    </section>
     <section class="hero" aria-labelledby="score-title">
       <div><p class="eyebrow">READINESS SCORE</p><div id="score" class="score">—</div><p id="band" class="band">—</p></div>
       <div class="confidence"><p class="eyebrow">CONFIDENCE RANGE</p><div class="range" aria-label="confidence interval"><div id="range-fill"></div><i id="range-point"></i></div><p id="interval">—</p><ul id="drivers" class="drivers"></ul></div>

@@ -1,0 +1,25 @@
+# Local hardening smoke configuration. Production must use the Kubernetes policy
+# in this directory (or an equivalent separately reviewed isolation boundary).
+services:
+  worker:
+    image: ${DEPLOYGRADE_WORKER_IMAGE:?pin_worker_image_by_digest}
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,nodev,size=64m
+    security_opt:
+      - no-new-privileges:true
+    cap_drop: ["ALL"]
+    user: "10001:10001"
+    pids_limit: 64
+    mem_limit: 512m
+    cpus: 1.0
+    init: true
+    environment:
+      DEPLOYGRADE_WORKER_AUTH_TOKEN: ${DEPLOYGRADE_WORKER_AUTH_TOKEN:?required}
+      DEPLOYGRADE_WORKER_IMAGE_DIGEST: ${DEPLOYGRADE_WORKER_IMAGE_DIGEST:?required}
+      DEPLOYGRADE_WORKER_POLICY_VERSION: ${DEPLOYGRADE_WORKER_POLICY_VERSION:?required}
+    networks: [worker_private]
+    ports: []
+networks:
+  worker_private:
+    internal: true

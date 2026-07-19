@@ -44,14 +44,29 @@ class VercelScoreApiTests(unittest.TestCase):
             calculate(payload)
 
     def test_http_handler_rejects_wrong_content_type_and_returns_json_artifact(self):
+        from deploygrade.engine.contracts import validate_artifact
+
         connection = HTTPConnection("127.0.0.1", self.server.server_port)
         connection.request("POST", "/api/score", body=json.dumps(self.payload), headers={"Content-Type": "text/plain"})
         response = connection.getresponse()
         self.assertEqual(response.status, 400)
-        self.assertIn("Content-Type", json.loads(response.read())["error"])
+        error = json.loads(response.read())
+        validate_artifact(error)
+        self.assertIn("Content-Type", error["error"])
         connection.request("POST", "/api/score", body=json.dumps(self.payload), headers={"Content-Type": "application/json"})
         response = connection.getresponse()
         artifact = json.loads(response.read())
         self.assertEqual(response.status, 200)
         self.assertEqual(response.getheader("X-DeployGrade-Input-Trust"), "unverified-declared-evidence")
         self.assertEqual(artifact["score"]["rubric_version"], "2026.07.0")
+
+    def test_all_supported_method_failures_are_schema_valid_json(self):
+        from deploygrade.engine.contracts import validate_artifact
+
+        for method in ("GET", "PUT", "PATCH", "DELETE", "OPTIONS"):
+            connection = HTTPConnection("127.0.0.1", self.server.server_port)
+            connection.request(method, "/api/score")
+            response = connection.getresponse()
+            self.assertEqual(response.status, 405, method)
+            artifact = json.loads(response.read())
+            validate_artifact(artifact)

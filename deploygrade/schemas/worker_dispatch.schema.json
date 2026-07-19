@@ -1,0 +1,17 @@
+{
+  "$schema":"https://json-schema.org/draft/2020-12/schema",
+  "$id":"worker_dispatch.schema.json",
+  "type":"object",
+  "required":["$schema","schema_version","dispatch_id","execution_kind","repository","blueprint_hash","approval","sandbox","dispatch_hash"],
+  "properties":{
+    "$schema":{"const":"../schemas/worker_dispatch.schema.json"},
+    "schema_version":{"const":"1.0"},
+    "dispatch_id":{"type":"string","minLength":1},
+    "execution_kind":{"type":"string","enum":["DISCOVERY","PILOT"]},
+    "repository":{"type":"object","required":["repository_id","connector_id","revision"],"properties":{"repository_id":{"type":"string","minLength":1},"connector_id":{"type":"string","minLength":1},"revision":{"type":"string","minLength":1}},"additionalProperties":false},
+    "blueprint_hash":{"type":"string","minLength":64},
+    "approval":{"type":"object","required":["approval_id","blueprint_hash","status","approver_id"],"properties":{"approval_id":{"type":"string","minLength":1},"blueprint_hash":{"type":"string","minLength":64},"status":{"const":"APPROVED"},"approver_id":{"type":"string","minLength":1}},"additionalProperties":false},
+    "sandbox":{"type":"object","required":["filesystem_mode","network_egress","credential_ref"],"properties":{"filesystem_mode":{"const":"READ_ONLY"},"network_egress":{"const":"DENY_ALL"},"credential_ref":{"type":"string","minLength":1}},"additionalProperties":false},
+    "dispatch_hash":{"type":"string","minLength":64}
+  },"additionalProperties":false
+}

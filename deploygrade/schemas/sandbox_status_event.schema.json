@@ -1,0 +1,12 @@
+{
+  "$schema":"https://json-schema.org/draft/2020-12/schema",
+  "$id":"sandbox_status_event.schema.json",
+  "type":"object",
+  "required":["$schema","schema_version","event_id","dispatch_hash","state","reason","human_escalation_required"],
+  "properties":{
+    "$schema":{"const":"../schemas/sandbox_status_event.schema.json"},"schema_version":{"const":"1.0"},
+    "event_id":{"type":"string","minLength":1},"dispatch_hash":{"type":"string","minLength":64},
+    "state":{"type":"string","enum":["RECEIVED","RUNNING","PAUSED","COMPLETED","FAILED"]},
+    "reason":{"type":"string","minLength":1},"human_escalation_required":{"type":"boolean"}
+  },"additionalProperties":false
+}

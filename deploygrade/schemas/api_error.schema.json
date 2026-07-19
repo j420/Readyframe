@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "api_error.schema.json",
+  "type": "object",
+  "required": ["$schema", "schema_version", "error"],
+  "properties": {
+    "$schema": {"const": "../schemas/api_error.schema.json"},
+    "schema_version": {"const": "1.0"},
+    "error": {"type": "string", "minLength": 1}
+  },
+  "additionalProperties": false
+}
