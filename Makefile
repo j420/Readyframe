@@ -1,6 +1,7 @@
 .PHONY: bootstrap score pilot flywheel demo verify verify-static-site verify-deployed audit redteam redteam-model goal handoffs tamper discovery readiness-fixtures dashboard blueprint pilot-scenarios
 
 bootstrap:
+	python3 -m pip install --disable-pip-version-check -r requirements-production.txt
 	git config core.hooksPath deploygrade/.githooks
 	chmod +x deploygrade/.githooks/pre-commit
 	@echo "DeployGrade hook installed."

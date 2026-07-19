@@ -1,6 +1,66 @@
 const byId = (id) => document.getElementById(id);
 const label = (name) => name.replaceAll('_', ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 const status = (item) => item.raw < 40 ? 'red' : item.raw < 70 ? 'amber' : 'green';
+const CONTROL_PLANE_REQUEST_SCHEMA = '../schemas/control_plane_request.schema.json';
+const CONTROL_PLANE_RESPONSE_SCHEMA = '../schemas/control_plane_response.schema.json';
+const API_ERROR_SCHEMA = '../schemas/api_error.schema.json';
+
+const controlPlaneRuntime = () => {
+  const runtime = window.DEPLOYGRADE_OPERATOR_RUNTIME;
+  if (!runtime || typeof runtime !== 'object' || typeof runtime.token !== 'string' || !runtime.token || typeof runtime.endpoint !== 'string' || !runtime.endpoint.startsWith('/api/')) return null;
+  return {token: runtime.token, endpoint: runtime.endpoint};
+};
+
+const defaultControlPlaneRequest = () => JSON.stringify({
+  $schema: CONTROL_PLANE_REQUEST_SCHEMA,
+  schema_version: '1.0',
+  action: 'job_status',
+  pilot_job_id: '00000000-0000-0000-0000-000000000000'
+}, null, 2);
+
+const renderControlPlaneResult = (result) => {
+  const output = byId('control-plane-result');
+  output.hidden = false;
+  output.textContent = JSON.stringify(result, null, 2);
+};
+
+const initializeControlPlane = () => {
+  const form = byId('control-plane-form');
+  const request = byId('control-plane-request');
+  const submit = byId('control-plane-submit');
+  const help = byId('control-plane-help');
+  const message = byId('control-plane-status');
+  const runtime = controlPlaneRuntime();
+  request.value = defaultControlPlaneRequest();
+  if (!runtime) return;
+  help.textContent = 'A runtime-only token is available. The token is never written to local storage, the URL, the page, or the audit display.';
+  submit.disabled = false;
+  form.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    let artifact;
+    try {
+      artifact = JSON.parse(request.value);
+      if (artifact.$schema !== CONTROL_PLANE_REQUEST_SCHEMA || artifact.schema_version !== '1.0') throw new Error('request must be a control-plane request artifact at schema version 1.0');
+    } catch (error) {
+      message.textContent = `Request was not submitted: ${error.message}`;
+      return;
+    }
+    message.textContent = 'Submitting authenticated control-plane request…';
+    submit.disabled = true;
+    try {
+      const response = await fetch(runtime.endpoint, {method: 'POST', headers: {'Authorization': `Bearer ${runtime.token}`, 'Content-Type': 'application/json'}, cache: 'no-store', body: JSON.stringify(artifact)});
+      const result = await response.json();
+      if (result.$schema !== CONTROL_PLANE_RESPONSE_SCHEMA && result.$schema !== API_ERROR_SCHEMA) throw new Error('endpoint returned an artifact with an unexpected schema');
+      renderControlPlaneResult(result);
+      if (!response.ok || result.$schema === API_ERROR_SCHEMA) throw new Error(result.error || 'control-plane request was refused');
+      message.textContent = `Control-plane request accepted: ${result.action}. Review the response artifact before taking further action.`;
+    } catch (error) {
+      message.textContent = `Control-plane request stopped safely: ${error.message}`;
+    } finally {
+      submit.disabled = false;
+    }
+  });
+};
 
 const renderPortfolio = (data) => {
   const rows = data.rows.sort((a, b) => b.risk.value - a.risk.value || b.velocity.value - a.velocity.value);
@@ -79,3 +139,5 @@ byId('score-form').addEventListener('submit', async (event) => {
     formStatus.textContent = `Score was not calculated: ${error.message}`;
   }
 });
+
+initializeControlPlane();

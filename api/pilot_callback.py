@@ -17,6 +17,132 @@ import uuid
 
 from api.responses import error_artifact
 from deploygrade.engine.contracts import validate_artifact
+from deploygrade.engine.callback_ingestion import CallbackAuthorization, CallbackIngestionAdapter, StoreCallbackIngestionAdapter
+from api.control_plane import control_plane_store
+
+MAX_BODY_BYTES = 32_768
+MAX_REPLAY_IDS = 4_096
+_ROUTES_ENV = "DEPLOYGRADE_PILOT_CALLBACK_ROUTES"
+_ENVIRONMENT = "DEPLOYGRADE_ENVIRONMENT"
+_ROUTE_ID = re.compile(r"^[A-Za-z0-9_-]{1,128}$")
+_SCHEMA_URI = "../schemas/pilot_callback.schema.json"
+_seen_event_ids: OrderedDict[str, None] = OrderedDict()
+_seen_event_ids_lock = threading.Lock()
+
+def _route_id(path: str) -> str:
+    """Return a configured durable route identity from a strict callback URL."""
+    parsed = urlsplit(path)
+    if parsed.query or parsed.fragment:
+        raise ValueError("callback route must not include query parameters")
+    prefix = "/api/pilot_callback/"
+    if not parsed.path.startswith(prefix):
+        raise ValueError("callback route authorization is required")
+    route_id = parsed.path[len(prefix):]
+    if not _ROUTE_ID.fullmatch(route_id):
+        raise ValueError("callback route authorization is required")
+    return route_id
+
+
+def _configured_routes(raw_routes: str) -> dict[str, CallbackAuthorization]:
+    """Parse only explicit immutable callback authorization configuration."""
+    try:
+        decoded = json.loads(raw_routes)
+    except json.JSONDecodeError as error:
+        raise ValueError("Pilot callback route configuration is invalid") from error
+    if not isinstance(decoded, dict) or not decoded:
+        raise ValueError("Pilot callback route configuration is invalid")
+    routes: dict[str, CallbackAuthorization] = {}
+    required = {"organization_id", "pilot_job_id", "blueprint_hash", "signing_secret"}
+    for route_id, values in decoded.items():
+        if not isinstance(route_id, str) or not _ROUTE_ID.fullmatch(route_id):
+            raise ValueError("Pilot callback route configuration is invalid")
+        if not isinstance(values, dict) or set(values) != required:
+            raise ValueError("Pilot callback route configuration is invalid")
+        try:
+            routes[route_id] = CallbackAuthorization(**values)
+        except (TypeError, ValueError) as error:
+            raise ValueError("Pilot callback route configuration is invalid") from error
+    return routes
+
+
+@lru_cache(maxsize=4)
+def _durable_adapter(raw_routes: str) -> CallbackIngestionAdapter:
+    """Build the durable adapter from trusted environment-only configuration."""
+    return CallbackIngestionAdapter(control_plane_store(), _configured_routes(raw_routes))
+
+
+def _clear_durable_adapter_for_test() -> None:
+    """Test-only helper for isolated environment configuration tests."""
+    _durable_adapter.cache_clear()
+
+
+def _active_durable_adapter() -> CallbackIngestionAdapter | None:
+    """Select durable ingestion whenever configured; production cannot downgrade."""
+    raw_routes = os.environ.get(_ROUTES_ENV)
+    if raw_routes:
+        # Transitional static route maps remain available for controlled migration.
+        # New production jobs use store-issued, short-lived authorizations below.
+        return _durable_adapter(raw_routes)
+    if os.environ.get(_ENVIRONMENT, "").lower() == "production":
+        return StoreCallbackIngestionAdapter(control_plane_store())
+    return None
+
+
+class ReplayDetected(ValueError):
+    """Raised when the same signed callback event is delivered twice."""
+
+
+def _validate_event_identity(event: dict) -> None:
+    """Reject ambiguous event identifiers and invalid timestamps."""
+    if not isinstance(event, dict):
+        raise ValueError("callback body must be a JSON object")
+    event_id = event.get("event_id")
+    if not isinstance(event_id, str):
+        raise ValueError("event_id must be a UUID string")
+    try:
+        parsed_id = uuid.UUID(event_id)
+    except (ValueError, AttributeError) as error:
+        raise ValueError("event_id must be a UUID string") from error
+    if str(parsed_id) != event_id.lower():
+        raise ValueError("event_id must be a canonical UUID string")
+
+    occurred_at = event.get("occurred_at")
+    if not isinstance(occurred_at, str) or not occurred_at.endswith("Z"):
+        raise ValueError("occurred_at must be an RFC3339 UTC timestamp")
+    try:
+        parsed_time = datetime.fromisoformat(occurred_at[:-1] + "+00:00")
+    except ValueError as error:
+        raise ValueError("occurred_at must be an RFC3339 UTC timestamp") from error
+    if parsed_time.tzinfo != timezone.utc:
+        raise ValueError("occurred_at must be an RFC3339 UTC timestamp")
+
+
+def _record_event_id(event_id: str) -> None:
+    """Record an accepted event ID atomically; a duplicate fails closed."""
+    with _seen_event_ids_lock:
+        if event_id in _seen_event_ids:
+            raise ReplayDetected("duplicate callback event_id")
+        _seen_event_ids[event_id] = None
+        if len(_seen_event_ids) > MAX_REPLAY_IDS:
+            _seen_event_ids.popitem(last=False)
+
+
+def _clear_replay_cache_for_test() -> None:
+    """Test-only helper; production code never clears accepted callback IDs."""
+    with _seen_event_ids_lock:
+        _seen_event_ids.clear()
+
+
+def _receipt(event: dict) -> dict:
+    payload = {
+        "$schema": "../schemas/pilot_callback_receipt.schema.json",
+        "schema_version": "1.0",
+        "accepted": True,
+        "event_id": event["event_id"],
+        "event_type": event["event_type"],
+    }
+    validate_artifact(payload)
+    return payload
 
 MAX_BODY_BYTES = 32_768
 MAX_REPLAY_IDS = 4_096

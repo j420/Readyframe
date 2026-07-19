@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "production_release_evidence.schema.json",
+  "x-schema-version": "1.0",
+  "type": "object",
+  "required": ["$schema", "schema_version", "release_commit", "deployed_origin", "control_plane_backend", "database_migration", "worker_image_digest", "worker_endpoint", "verified_by", "verified_at"],
+  "properties": {
+    "$schema": {"const": "../schemas/production_release_evidence.schema.json"},
+    "schema_version": {"const": "1.0"},
+    "release_commit": {"type": "string", "pattern": "^[a-f0-9]{40}$"},
+    "deployed_origin": {"type": "string", "pattern": "^https://[^/?#]+$"},
+    "control_plane_backend": {"enum": ["postgresql", "supabase_postgres"]},
+    "database_migration": {"type": "string", "pattern": "^[0-9]{4}_[a-z0-9_]+\\.sql$"},
+    "worker_image_digest": {"type": "string", "pattern": "^sha256:[a-f0-9]{64}$"},
+    "worker_endpoint": {"type": "string", "pattern": "^https://[^/?#]+$"},
+    "verified_by": {"type": "string", "minLength": 3, "maxLength": 128},
+    "verified_at": {"type": "string", "minLength": 20, "maxLength": 40}
+  },
+  "additionalProperties": false
+}

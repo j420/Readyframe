@@ -1,0 +1,44 @@
+# Apply only after replacing placeholders through the deployment system.  The
+# worker has no public Service; a private mTLS ingress/queue must authenticate
+# dispatches before they reach this pod.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: deploygrade-worker
+  namespace: deploygrade-worker
+spec:
+  replicas: 1
+  selector: {matchLabels: {app: deploygrade-worker}}
+  template:
+    metadata: {labels: {app: deploygrade-worker}}
+    spec:
+      automountServiceAccountToken: false
+      serviceAccountName: deploygrade-worker
+      securityContext: {runAsNonRoot: true, runAsUser: 10001, runAsGroup: 10001, seccompProfile: {type: RuntimeDefault}}
+      containers:
+        - name: worker
+          image: REPLACE_WITH_IMMUTABLE_IMAGE_DIGEST
+          imagePullPolicy: IfNotPresent
+          ports: [{containerPort: 8080, name: http}]
+          securityContext: {allowPrivilegeEscalation: false, readOnlyRootFilesystem: true, capabilities: {drop: ["ALL"]}}
+          resources:
+            requests: {cpu: "250m", memory: "256Mi"}
+            limits: {cpu: "1", memory: "512Mi", ephemeral-storage: "1Gi"}
+          env:
+            - {name: DEPLOYGRADE_WORKER_AUTH_TOKEN, valueFrom: {secretKeyRef: {name: deploygrade-worker, key: auth-token}}}
+            - {name: DEPLOYGRADE_WORKER_IMAGE_DIGEST, value: REPLACE_WITH_IMAGE_DIGEST}
+            - {name: DEPLOYGRADE_WORKER_POLICY_VERSION, value: "worker-policy-v1"}
+          volumeMounts: [{name: tmp, mountPath: /tmp}]
+      volumes: [{name: tmp, emptyDir: {medium: Memory, sizeLimit: 64Mi}}]
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata: {name: deploygrade-worker-default-deny, namespace: deploygrade-worker}
+spec:
+  podSelector: {matchLabels: {app: deploygrade-worker}}
+  policyTypes: [Ingress, Egress]
+  ingress:
+    - from:
+        - namespaceSelector: {matchLabels: {deploygrade.io/private-worker-ingress: "true"}}
+      ports: [{protocol: TCP, port: 8080}]
+  egress: []
